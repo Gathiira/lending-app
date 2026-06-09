@@ -10,6 +10,7 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "loan_fees")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@ToString
 public class LoanFee extends BaseEntity{
 
     @Id

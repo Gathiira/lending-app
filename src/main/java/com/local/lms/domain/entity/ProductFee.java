@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "product_fees")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@ToString
 public class ProductFee extends BaseEntity{
 
     @Id

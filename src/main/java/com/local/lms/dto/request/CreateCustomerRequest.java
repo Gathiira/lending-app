@@ -20,6 +20,9 @@ public class CreateCustomerRequest {
     private String phoneNumber;
     @NotBlank
     private String nationalId;
+    @NotBlank
+    private String password;
+
     private Integer creditScore = 0;
 
     private BigDecimal maxLoanLimit;

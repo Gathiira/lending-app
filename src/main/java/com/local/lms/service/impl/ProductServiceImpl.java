@@ -8,7 +8,6 @@ import com.local.lms.dto.response.ProductFeeResponse;
 import com.local.lms.dto.response.ProductResponse;
 import com.local.lms.exceptions.BusinessException;
 import com.local.lms.exceptions.ResourceNotFoundException;
-import com.local.lms.repository.LoanFeeRepository;
 import com.local.lms.repository.LoanProductRepository;
 import com.local.lms.repository.ProductFeeRepository;
 import com.local.lms.service.ProductService;
@@ -17,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 public class ProductServiceImpl implements ProductService {
 
     private final LoanProductRepository productRepository;
-    private final LoanFeeRepository loanFeeRepository;
     private final ProductFeeRepository productFeeRepository;
 
     @Override
@@ -49,14 +48,14 @@ public class ProductServiceImpl implements ProductService {
                 .billingCycleType(request.getBillingCycleType())
                 .gracePeriodDays(request.getGracePeriodDays())
                 .active(true)
+                .fees(new ArrayList<>())
                 .build();
 
         if (request.getFees() != null) {
             request.getFees().forEach(feeReq -> {
                 ProductFee fee = mapToFeeEntity(feeReq);
                 fee.setProduct(product);
-                ProductFee saved = productFeeRepository.save(fee);
-                product.getFees().add(saved);
+                product.getFees().add(fee);
             });
         }
 

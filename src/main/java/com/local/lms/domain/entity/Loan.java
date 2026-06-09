@@ -71,12 +71,15 @@ public class Loan extends BaseEntity {
 
     @OneToMany(mappedBy = "loan", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("installmentNumber ASC")
+    @Builder.Default
     private List<LoanInstallment> installments = new ArrayList<>();
 
     @OneToMany(mappedBy = "loan", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
     private List<LoanFee> fees = new ArrayList<>();
 
     @OneToMany(mappedBy = "loan", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
     private List<Repayment> repayments = new ArrayList<>();
 
     public boolean isActive() {

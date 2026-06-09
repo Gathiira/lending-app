@@ -131,7 +131,7 @@ public class LoanServiceImpl implements LoanService {
 
         BigDecimal paymentAmount = request.getAmount();
         BigDecimal feesSettled = BigDecimal.ZERO;
-        BigDecimal principalSettled = BigDecimal.ZERO;
+        BigDecimal principalSettled;
 
         // First settle unpaid fees
         List<LoanFee> unpaidFees = loanFeeRepository.findByLoanIdAndPaidFalse(loan.getId());

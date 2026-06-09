@@ -13,6 +13,7 @@ import java.util.List;
 @Entity
 @Table(name = "loan_products")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@ToString
 public class LoanProduct extends BaseEntity{
 
     @Id
@@ -56,5 +57,6 @@ public class LoanProduct extends BaseEntity{
     private Boolean active = true;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @Builder.Default
     private List<ProductFee> fees = new ArrayList<>();
 }

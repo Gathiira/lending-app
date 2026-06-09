@@ -8,7 +8,12 @@ import java.math.BigDecimal;
 
 @Entity
 @Table(name = "credit_limit")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@ToString
 public class CreditLimit extends BaseEntity {
 
     @Id

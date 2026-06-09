@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/v1/customers")
 @RequiredArgsConstructor
-@Tag(name = "Customers", description = "Customer profile management APIs")
+@Tag(name = "Customers", description = "Customers profile management APIs")
 public class CustomerController extends  BaseController {
 
     private final CustomerService customerService;
