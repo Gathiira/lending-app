@@ -3,17 +3,15 @@ package com.local.lms.domain.entity;
 import com.local.lms.domain.enums.NotificationChannel;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "customers")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class Customer {
+public class Customer extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,13 +47,6 @@ public class Customer {
 
     @Column(nullable = false)
     private Boolean active = true;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
     private List<Loan> loans = new ArrayList<>();

@@ -19,7 +19,7 @@ public class CustomerResponse {
     private Integer creditScore;
     private BigDecimal maxLoanLimit;
     private BigDecimal currentLoanLimit;
-    private NotificationChannel preferredNotificationChannel;
+    private NotificationChannel preferredChannel;
     private Boolean active;
     private LocalDateTime createdAt;
 }
