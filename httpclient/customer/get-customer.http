@@ -1,5 +1,0 @@
-### GET request to list customers
-GET http://localhost:8085/api/v1/customers
-Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJyb2xlIjoiQ1VTVE9NRVIiLCJjdXN0b21lcklkIjoxLCJ1c2VySWQiOjQsInN1YiI6ImthbWF1IiwiaWF0IjoxNzgxMDE2NTA0LCJleHAiOjE3ODExMDI5MDR9.BsdoaNicNHO88PnAOHzAVQC-2CvHCtf9UQQG-3MVWxP2rLXgxp_g2vE4skPsrwoc
-
-###
