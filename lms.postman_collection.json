@@ -1,0 +1,156 @@
+{
+	"info": {
+		"_postman_id": "76239f13-b8aa-4123-92b5-ae985fa0efad",
+		"name": "lms",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "13299840",
+		"_collection_link": "https://www.postman.com/brijtechke/workspace/projects/collection/13299840-76239f13-b8aa-4123-92b5-ae985fa0efad?action=share&source=collection_link&creator=13299840"
+	},
+	"item": [
+		{
+			"name": "auth",
+			"item": [
+				{
+					"name": "login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    var data = jsonData.data",
+									"    pm.environment.set(data.username + \"Token\", \"Bearer \" + data.token);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\":\"kamau\",\n    \"password\":\"{{password}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{local}}/v1/auth/login"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "customer",
+			"item": [
+				{
+					"name": "get customers",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{kamauToken}}",
+								"type": "text"
+							}
+						],
+						"url": "{{local}}/v1/customers"
+					},
+					"response": []
+				},
+				{
+					"name": "get customer details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{kamauToken}}",
+								"type": "text"
+							}
+						],
+						"url": "{{local}}/v1/customer"
+					},
+					"response": []
+				},
+				{
+					"name": "list customer limit requests",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{kamauToken}}",
+								"type": "text"
+							}
+						],
+						"url": "{{local}}/v1/customer/limit-request"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "loan",
+			"item": [
+				{
+					"name": "get loan",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{kamauToken}}",
+								"type": "text"
+							}
+						],
+						"url": "{{local}}/v1/loans"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "product",
+			"item": [
+				{
+					"name": "list loan product",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{kamauToken}}",
+								"type": "text"
+							}
+						],
+						"url": "{{local}}/v1/products"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "scheduler",
+			"item": [
+				{
+					"name": "trigger reminder",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{local}}/v1/notifications/reminders/trigger"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
