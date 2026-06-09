@@ -1,0 +1,7 @@
+package com.local.lms.domain.enums;
+
+public enum NotificationEventType {
+    LOAN_CREATED, LOAN_DISBURSED, LOAN_REPAYMENT, LOAN_OVERDUE,
+    LOAN_CLOSED, LOAN_CANCELLED, LOAN_WRITTEN_OFF,
+    DUE_DATE_REMINDER, LATE_FEE_APPLIED
+}
