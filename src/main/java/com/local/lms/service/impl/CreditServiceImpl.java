@@ -10,6 +10,7 @@ import com.local.lms.dto.request.ApproveCustomerLimitRequest;
 import com.local.lms.dto.request.CustomerLimitRequest;
 import com.local.lms.dto.response.CreditLimitRequestResponse;
 import com.local.lms.dto.response.CreditLimitResponse;
+import com.local.lms.exceptions.BusinessException;
 import com.local.lms.exceptions.ExceptionAssert;
 import com.local.lms.exceptions.ResourceNotFoundException;
 import com.local.lms.repository.CreditLimitRepository;
@@ -43,11 +44,20 @@ public class CreditServiceImpl implements CreditService {
     @Override
     public List<CreditLimitRequestResponse> getLimitRequests() {
         return creditLimitRequestRepository.findAll().stream().map(this::mapToLimitRequestResponse).collect(Collectors.toList());
+    }   @Override
+    public List<CreditLimitRequestResponse> getLimitRequests(Long customerId) {
+        return creditLimitRequestRepository.findByCustomerId(customerId).stream().map(this::mapToLimitRequestResponse).collect(Collectors.toList());
     }
 
     @Override
     public  List<CreditLimitResponse> getCreditLimit() {
         return creditLimitRepository.findAll().stream().map(this::mapToLimitResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public  CreditLimitResponse getCustomerCreditLimit(Long customerId) {
+        CreditLimit creditLimit = creditLimitRepository.findByCustomerId(customerId).orElseThrow(() -> new BusinessException("Credit limit not found"));
+        return mapToLimitResponse(creditLimit);
     }
 
     @Override

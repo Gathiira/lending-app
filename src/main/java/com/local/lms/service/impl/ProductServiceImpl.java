@@ -175,6 +175,7 @@ public class ProductServiceImpl implements ProductService {
                 .description(product.getDescription())
                 .minAmount(product.getMinAmount())
                 .maxAmount(product.getMaxAmount())
+                .interestRate(product.getInterestRate())
                 .tenureValue(product.getTenureValue())
                 .tenureType(product.getTenureType())
                 .loanType(product.getLoanType())

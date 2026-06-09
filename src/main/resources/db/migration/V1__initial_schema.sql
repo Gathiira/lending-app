@@ -5,7 +5,7 @@
 
 -- ENUMS
 CREATE TYPE tenure_type AS ENUM ('DAYS', 'MONTHS');
-CREATE TYPE fee_type AS ENUM ('SERVICE_FEE', 'DAILY_FEE', 'LATE_FEE');
+CREATE TYPE fee_type AS ENUM ('SERVICE_FEE', 'DAILY_FEE', 'LATE_FEE', 'INTEREST_FEE');
 CREATE TYPE fee_calculation_method AS ENUM ('FIXED', 'PERCENTAGE');
 CREATE TYPE loan_type AS ENUM ('LUMP_SUM', 'INSTALLMENT');
 CREATE TYPE loan_status AS ENUM ('OPEN', 'CLOSED', 'CANCELLED', 'OVERDUE', 'WRITTEN_OFF', 'PENDING_APPROVAL');
@@ -48,6 +48,7 @@ CREATE TABLE loan_products (
                                description             TEXT,
                                min_amount              NUMERIC(19,4) NOT NULL,
                                max_amount              NUMERIC(19,4) NOT NULL,
+                               interest_rate              NUMERIC(5,2) NOT NULL,
                                tenure_value            INTEGER NOT NULL,
                                tenure_type             tenure_type NOT NULL,
                                loan_type               loan_type NOT NULL DEFAULT 'LUMP_SUM',

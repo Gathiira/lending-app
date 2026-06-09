@@ -50,22 +50,25 @@ INSERT INTO notification_templates (event, channel, subject, body) VALUES
 -- =========================================================
 -- LOAN PRODUCTS
 -- =========================================================
-INSERT INTO loan_products (name, description, min_amount, max_amount, tenure_value, tenure_type, loan_type, installment_count, billing_cycle_type, grace_period_days) VALUES
-                                                                                                                                                                          ('Quick Cash 30',
-                                                                                                                                                                           'Short-term lump sum loan repayable in 30 days.',
-                                                                                                                                                                           1000, 50000, 30, 'DAYS', 'LUMP_SUM', NULL, 'INDIVIDUAL', 3),
+INSERT INTO loan_products
+(name, description, min_amount, max_amount, interest_rate, tenure_value, tenure_type, loan_type, installment_count, billing_cycle_type, grace_period_days)
+VALUES
 
-                                                                                                                                                                          ('Flexi Monthly 3',
-                                                                                                                                                                           'Three-month installment loan with monthly repayments.',
-                                                                                                                                                                           5000, 200000, 3, 'MONTHS', 'INSTALLMENT', 3, 'INDIVIDUAL', 5),
+    ('Quick Cash 30',
+     'Short-term lump sum loan repayable in 30 days.',
+     1000, 50000, 12.50, 30, 'DAYS', 'LUMP_SUM', NULL, 'INDIVIDUAL', 3),
 
-                                                                                                                                                                          ('Consolidated Payroll',
-                                                                                                                                                                           'Monthly payroll loan consolidated on the 25th of each month.',
-                                                                                                                                                                           10000, 500000, 1, 'MONTHS', 'LUMP_SUM', NULL, 'CONSOLIDATED', 0),
+    ('Flexi Monthly 3',
+     'Three-month installment loan with monthly repayments.',
+     5000, 200000, 18.00, 3, 'MONTHS', 'INSTALLMENT', 3, 'INDIVIDUAL', 5),
 
-                                                                                                                                                                          ('Business Boost 6M',
-                                                                                                                                                                           'Six-month business loan with monthly installments.',
-                                                                                                                                                                           50000, 1000000, 6, 'MONTHS', 'INSTALLMENT', 6, 'INDIVIDUAL', 7);
+    ('Consolidated Payroll',
+     'Monthly payroll loan consolidated on the 25th of each month.',
+     10000, 500000, 10.00, 1, 'MONTHS', 'LUMP_SUM', NULL, 'CONSOLIDATED', 0),
+
+    ('Business Boost 6M',
+     'Six-month business loan with monthly installments.',
+     50000, 1000000, 15.75, 6, 'MONTHS', 'INSTALLMENT', 6, 'INDIVIDUAL', 7);
 
 -- =========================================================
 -- PRODUCT FEES

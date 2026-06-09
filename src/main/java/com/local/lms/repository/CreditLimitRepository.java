@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface CreditLimitRepository extends JpaRepository<CreditLimit, Long> {
     boolean existsByCustomer(Customer customer);
     Optional<CreditLimit> findByCustomer(Customer customer);
+    Optional<CreditLimit> findByCustomerId(Long customerId);
 }

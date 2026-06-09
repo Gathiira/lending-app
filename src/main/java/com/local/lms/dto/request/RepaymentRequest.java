@@ -17,4 +17,6 @@ public class RepaymentRequest {
     private Long installmentId;
     private LocalDate paymentDate;
     private String notes;
+
+    private Long customerId;
 }

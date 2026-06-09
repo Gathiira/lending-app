@@ -1,10 +1,8 @@
 package com.local.lms.controller;
 
 import com.local.lms.dto.request.CreateLoanRequest;
-import com.local.lms.dto.request.RepaymentRequest;
 import com.local.lms.dto.response.ResponseResult;
 import com.local.lms.dto.response.LoanResponse;
-import com.local.lms.dto.response.RepaymentResponse;
 import com.local.lms.service.LoanService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -50,13 +48,6 @@ public class LoanController  extends  BaseController{
     @Operation(summary = "Get all loans for a customer")
     public ResponseResult<List<LoanResponse>> getCustomerLoans(@PathVariable Long customerId) {
         return ResponseResult.success(loanService.getCustomerLoans(customerId));
-    }
-
-    @PostMapping("/repayments")
-    @Operation(summary = "Make a repayment on a loan")
-    public ResponseResult<RepaymentResponse> makeRepayment(
-            @Validated @RequestBody RepaymentRequest request) {
-        return ResponseResult.success("Repayment recorded successfully", loanService.makeRepayment(request));
     }
 
     @PatchMapping("/{id}/cancel")

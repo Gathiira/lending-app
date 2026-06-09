@@ -15,6 +15,7 @@ public class ProductResponse {
     private String description;
     private BigDecimal minAmount;
     private BigDecimal maxAmount;
+    private BigDecimal interestRate;
     private Integer tenureValue;
     private TenureType tenureType;
     private LoanType loanType;

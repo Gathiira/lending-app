@@ -1,6 +1,7 @@
 package com.local.lms.domain.entity;
 
 import com.local.lms.domain.enums.CreditLimitStatus;
+import com.local.lms.exceptions.BusinessException;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -49,24 +50,34 @@ public class CreditLimit extends BaseEntity {
 
     public void freeze(BigDecimal amount) {
         if (amount.signum() <= 0) {
-            throw new IllegalArgumentException("Amount must be positive");
+            throw new BusinessException("Amount must be positive");
         }
 
         if (availableLimit.compareTo(amount) < 0) {
-            throw new IllegalStateException("Insufficient available limit");
+            throw new BusinessException("Insufficient available limit");
         }
 
         frozenLimit = frozenLimit.add(amount);
-        availableLimit = currentLimit.subtract(frozenLimit);
+        availableLimit = availableLimit.subtract(frozenLimit);
+    }
+
+    public void utilizeFrozenLimit(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("Amount must be greater than zero");
+        }
+        if (amount.compareTo(frozenLimit) > 0) {
+            throw new BusinessException("Utilization amount exceeds frozen limit");
+        }
+        frozenLimit = frozenLimit.subtract(amount);
     }
 
     public void release(BigDecimal amount) {
         if (amount.signum() <= 0) {
-            throw new IllegalArgumentException("Amount must be positive");
+            throw new BusinessException("Amount must be positive");
         }
 
         if (frozenLimit.compareTo(amount) < 0) {
-            throw new IllegalStateException("Cannot release more than frozen amount");
+            throw new BusinessException("Cannot release more than frozen amount");
         }
 
         frozenLimit = frozenLimit.subtract(amount);
