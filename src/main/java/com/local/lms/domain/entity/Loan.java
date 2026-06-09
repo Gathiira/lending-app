@@ -89,6 +89,6 @@ public class Loan {
     private List<Repayment> repayments = new ArrayList<>();
 
     public boolean isActive() {
-        return state == LoanStatus.OPEN || state == LoanStatus.OVERDUE;
+        return status == LoanStatus.OPEN || status == LoanStatus.OVERDUE;
     }
 }
