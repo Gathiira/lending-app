@@ -67,6 +67,7 @@ class ProductServiceTest {
         LoanProduct savedProduct = LoanProduct.builder()
                 .id(1L).name("Test Product").minAmount(new BigDecimal("1000"))
                 .maxAmount(new BigDecimal("50000")).tenureValue(30)
+                .interestRate(BigDecimal.valueOf(5))
                 .tenureType(TenureType.DAYS).loanType(LoanType.LUMP_SUM)
                 .billingCycleType(BillingCycleType.INDIVIDUAL).gracePeriodDays(3)
                 .active(true).build();
@@ -137,6 +138,7 @@ class ProductServiceTest {
         LoanProduct p1 = LoanProduct.builder().id(1L).name("Active").active(true)
                 .minAmount(BigDecimal.ONE).maxAmount(BigDecimal.TEN)
                 .tenureValue(30).tenureType(TenureType.DAYS)
+                .interestRate(BigDecimal.valueOf(5))
                 .loanType(LoanType.LUMP_SUM).billingCycleType(BillingCycleType.INDIVIDUAL)
                 .gracePeriodDays(0).build();
 

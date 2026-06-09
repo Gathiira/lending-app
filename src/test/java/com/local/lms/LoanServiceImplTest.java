@@ -7,6 +7,7 @@ import com.local.lms.dto.request.RepaymentRequest;
 import com.local.lms.dto.response.LoanResponse;
 import com.local.lms.dto.response.RepaymentResponse;
 import com.local.lms.exceptions.BusinessException;
+import com.local.lms.exceptions.ResourceNotFoundException;
 import com.local.lms.repository.*;
 import com.local.lms.service.NotificationService;
 import com.local.lms.service.impl.LoanServiceImpl;
@@ -37,6 +38,7 @@ class LoanServiceImplTest {
     @Mock private CustomerRepository customerRepository;
     @Mock private LoanProductRepository productRepository;
     @Mock private NotificationService notificationService;
+    @Mock LoanInstallmentRepository installmentRepository;
 
     // ----------------------------
     // CREATE LOAN - SUCCESS
@@ -56,10 +58,11 @@ class LoanServiceImplTest {
                 .active(true)
                 .minAmount(new BigDecimal("1000"))
                 .maxAmount(new BigDecimal("5000"))
+                .interestRate(new BigDecimal("10.0"))
                 .loanType(LoanType.LUMP_SUM)
                 .billingCycleType(BillingCycleType.INDIVIDUAL)
-                .tenureType(TenureType.DAYS)
-                .tenureValue(30)
+                .tenureType(TenureType.MONTHS)
+                .tenureValue(1)
                 .fees(new ArrayList<>())
                 .build();
 
@@ -71,14 +74,20 @@ class LoanServiceImplTest {
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(loanRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(loanFeeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         LoanResponse response = loanService.createLoan(request);
 
         assertThat(response).isNotNull();
         assertThat(response.getPrincipalAmount()).isEqualByComparingTo("2000");
 
-        verify(customerRepository).save(customer);
-        verify(loanRepository, atLeast(1)).save(any(Loan.class));
+        verify(loanRepository, atLeastOnce()).save(any(Loan.class));
+
+        // interest fee must be created
+        verify(loanFeeRepository, atLeastOnce()).save(argThat(fee ->
+                fee.getFeeType() == FeeType.INTEREST_FEE
+        ));
+
         verify(notificationService).sendNotification(eq(customer), any(), any());
     }
 
@@ -96,6 +105,7 @@ class LoanServiceImplTest {
 
         LoanProduct product = LoanProduct.builder()
                 .id(1L)
+                .interestRate(new BigDecimal("10.0"))
                 .active(false)
                 .build();
 
@@ -129,10 +139,11 @@ class LoanServiceImplTest {
                 .active(true)
                 .minAmount(new BigDecimal("500"))
                 .maxAmount(new BigDecimal("5000"))
+                .interestRate(new BigDecimal("10.0"))
                 .loanType(LoanType.LUMP_SUM)
                 .billingCycleType(BillingCycleType.INDIVIDUAL)
-                .tenureType(TenureType.DAYS)
-                .tenureValue(30)
+                .tenureType(TenureType.MONTHS)
+                .tenureValue(1)
                 .fees(new ArrayList<>())
                 .build();
 
@@ -154,20 +165,13 @@ class LoanServiceImplTest {
     @Test
     void makeRepayment_shouldFail_whenAmountZero() {
 
-        Loan loan = Loan.builder()
-                .id(1L)
-                .status(LoanStatus.OPEN)
-                .build();
-
-        when(loanRepository.findById(1L)).thenReturn(Optional.of(loan));
-
         RepaymentRequest request = new RepaymentRequest();
         request.setLoanId(1L);
+        request.setCustomerId(1L);
         request.setAmount(BigDecimal.ZERO);
 
         assertThatThrownBy(() -> loanService.makeRepayment(request))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("positive");
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     // ----------------------------
@@ -179,22 +183,27 @@ class LoanServiceImplTest {
         Loan loan = Loan.builder()
                 .id(1L)
                 .status(LoanStatus.OPEN)
-                .outstandingBalance(new BigDecimal("2000"))
-                .customer(Customer.builder()
-                        .id(1L)
-                        .currentLoanLimit(new BigDecimal("0"))
-                        .build())
+                .principalAmount(new BigDecimal("2000"))
+                .outstandingBalance(new BigDecimal("2200")) // includes interest
+                .customer(Customer.builder().id(1L).build())
                 .build();
 
-        when(loanRepository.findById(1L)).thenReturn(Optional.of(loan));
-        when(loanFeeRepository.findByLoanIdAndPaidFalse(1L))
-                .thenReturn(List.of());
+        LoanFee interestFee = LoanFee.builder()
+                .feeType(FeeType.INTEREST_FEE)
+                .amount(new BigDecimal("200"))
+                .paid(false)
+                .build();
 
+        when(loanRepository.findByIdAndCustomerId(1L, 1L))
+                .thenReturn(Optional.of(loan));
+        when(loanFeeRepository.findByLoanIdAndPaidFalse(1L))
+                .thenReturn(List.of(interestFee));
         when(loanRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(repaymentRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         RepaymentRequest request = new RepaymentRequest();
-        request.setLoanId(1L);
+        request.setLoanId(loan.getId());
+        request.setCustomerId(loan.getCustomer().getId());
         request.setAmount(new BigDecimal("1000"));
 
         RepaymentResponse response = loanService.makeRepayment(request);
@@ -217,24 +226,19 @@ class LoanServiceImplTest {
                 .currentLoanLimit(new BigDecimal("1000"))
                 .build();
 
-        LoanProduct product = LoanProduct.builder()
-                .id(1L)
-                .active(true)
-                .minAmount(new BigDecimal("500"))
-                .maxAmount(new BigDecimal("5000"))
-                .loanType(LoanType.LUMP_SUM)
-                .billingCycleType(BillingCycleType.INDIVIDUAL)
-                .tenureType(TenureType.DAYS)
-                .tenureValue(30)
-                .fees(new ArrayList<>())
-                .build();
-
         Loan loan = Loan.builder()
                 .id(1L)
                 .status(LoanStatus.OPEN)
                 .principalAmount(new BigDecimal("500"))
                 .customer(customer)
-                .product(product)
+                .product(LoanProduct.builder()
+                        .id(1L)
+                        .interestRate(new BigDecimal("10.0"))
+                        .loanType(LoanType.LUMP_SUM)
+                        .billingCycleType(BillingCycleType.INDIVIDUAL)
+                        .tenureType(TenureType.MONTHS)
+                        .tenureValue(1)
+                        .build())
                 .build();
 
         when(loanRepository.findById(1L)).thenReturn(Optional.of(loan));

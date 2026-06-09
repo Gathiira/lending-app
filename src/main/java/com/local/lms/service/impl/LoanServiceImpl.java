@@ -73,12 +73,12 @@ public class LoanServiceImpl implements LoanService {
         if (product.getLoanType() == LoanType.INSTALLMENT) {
             generateInstallments(loan, product);
         }
-        Loan savedLoan = loanRepository.saveAndFlush(loan);
+        loanRepository.saveAndFlush(loan);
 
-        log.info("Created loan {} for customer {} amount={}", savedLoan.getLoanReference(), customer.getEmail(), amount);
-        notificationService.sendNotification(customer, savedLoan, NotificationEventType.LOAN_CREATED);
+        log.info("Created loan {} for customer {} amount={}", loan.getLoanReference(), customer.getEmail(), amount);
+        notificationService.sendNotification(customer, loan, NotificationEventType.LOAN_CREATED);
 
-        return mapToResponse(savedLoan);
+        return mapToResponse(loan);
     }
 
     @Override
