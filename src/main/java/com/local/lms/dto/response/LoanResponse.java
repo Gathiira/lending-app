@@ -27,7 +27,7 @@ public class LoanResponse {
     private LocalDate disbursementDate;
     private LocalDate closedDate;
     private String notes;
-    private List<InstallmentResponse> instalments;
+    private List<InstallmentResponse> installments;
     private List<LoanFeeResponse> fees;
     private LocalDateTime createdAt;
 }
