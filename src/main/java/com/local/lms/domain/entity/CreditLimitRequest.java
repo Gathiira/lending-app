@@ -20,14 +20,18 @@ public class CreditLimitRequest extends BaseEntity {
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
-    @Column(name = "current_limit", nullable = false)
-    private BigDecimal currentLimit;
+    @Column(name = "approved_limit", nullable = false)
+    private BigDecimal approvedLimit;
 
     @Column(columnDefinition = "TEXT")
     private String reason;
 
+    @Column(columnDefinition = "TEXT", name = "file_url")
+    private String fileUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "approval_status")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
     private ApprovalStatus status = ApprovalStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)

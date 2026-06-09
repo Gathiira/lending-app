@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,11 +43,9 @@ public class NotificationServiceImpl implements NotificationService {
     @Value("${notification.email.from:noreply@lending.com}")
     private String emailFrom;
 
-    // Optional: injected lazily to avoid startup failures when mail not configured
-    private final JavaMailSender mailSender;
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void sendNotification(Customer customer, Loan loan, NotificationEventType event) {
         NotificationChannel channel = customer.getPreferredChannel();
 
@@ -153,9 +150,9 @@ public class NotificationServiceImpl implements NotificationService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(emailFrom);
         message.setTo(to);
-        message.setSubject(subject != null ? subject : "Lending Notification");
+        message.setSubject(subject != null ? subject : "Lms Notification");
         message.setText(body);
-        mailSender.send(message);
+        System.out.println(message);
     }
 
     private NotificationTemplateResponse mapToResponse(NotificationTemplate t) {

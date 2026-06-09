@@ -27,6 +27,7 @@ public class LoanFee extends BaseEntity{
 
     @Enumerated(EnumType.STRING)
     @Column(name = "fee_type", nullable = false, columnDefinition = "fee_type")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
     private FeeType feeType;
 
     @Column(name = "amount")

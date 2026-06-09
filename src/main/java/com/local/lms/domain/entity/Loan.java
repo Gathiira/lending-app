@@ -40,14 +40,17 @@ public class Loan extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "loan_type", nullable = false, columnDefinition = "loan_type")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
     private LoanType loanType;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, columnDefinition = "loan_status")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
     private LoanStatus status = LoanStatus.OPEN;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "billing_cycle_type", nullable = false, columnDefinition = "billing_cycle_type")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
     private BillingCycleType billingCycleType = BillingCycleType.INDIVIDUAL;
 
     /** Used when billing_cycle_type = CONSOLIDATED */

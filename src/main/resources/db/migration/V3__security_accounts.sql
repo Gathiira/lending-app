@@ -57,9 +57,9 @@ CREATE TABLE loan_approvals (
 CREATE TABLE credit_limit_requests (
                                        id                  BIGSERIAL PRIMARY KEY,
                                        customer_id         BIGINT NOT NULL REFERENCES customers(id),
-                                       requested_limit     NUMERIC(19,4) NOT NULL,
-                                       current_limit       NUMERIC(19,4) NOT NULL,
+                                       approved_limit       NUMERIC(19,4) NOT NULL,
                                        reason              TEXT,
+                                       file_url              TEXT,
                                        status              approval_status NOT NULL DEFAULT 'PENDING',
                                        reviewed_by         BIGINT REFERENCES user_accounts(id),
                                        review_notes        TEXT,
@@ -71,6 +71,21 @@ CREATE TABLE credit_limit_requests (
 );
 
 -- =========================================================
--- LOAN STATUS: add PENDING_APPROVAL state
+-- CREDIT LIMIT WORKFLOW
 -- =========================================================
-ALTER TYPE loan_status ADD VALUE IF NOT EXISTS 'PENDING_APPROVAL';
+CREATE TYPE credit_limit_status AS ENUM ('ACTIVE', 'INACTIVE', 'PROBATION', 'BLACKLISTED');
+
+CREATE TABLE credit_limit(
+                                       id                  BIGSERIAL PRIMARY KEY,
+                                       customer_id         BIGINT NOT NULL REFERENCES customers(id),
+                                       request_id         BIGINT NOT NULL REFERENCES credit_limit_requests(id),
+                                       product_id         BIGINT NOT NULL REFERENCES loan_products(id),
+                                       credit_limit       NUMERIC(19,4) NOT NULL,
+                                       frozen_limit       NUMERIC(19,4) NOT NULL,
+                                       available_limit       NUMERIC(19,4) NOT NULL,
+                                       status              credit_limit_status NOT NULL DEFAULT 'ACTIVE',
+                                       created_at          TIMESTAMP NOT NULL DEFAULT NOW(),
+                                       updated_at          TIMESTAMP NOT NULL DEFAULT NOW(),
+                                       created_by          VARCHAR(100),
+                                       updated_by          VARCHAR(100)
+);

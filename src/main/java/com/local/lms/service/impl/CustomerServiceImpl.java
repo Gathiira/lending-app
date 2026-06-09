@@ -101,13 +101,13 @@ public class CustomerServiceImpl implements CustomerService {
         log.info("Deactivated customer id={}", id);
     }
 
-    // ---- helpers ----
-
+    @Override
     public Customer findById(Long id) {
         return customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", id));
     }
 
+    // ---- helpers ----
     public CustomerResponse mapToResponse(Customer c) {
         return CustomerResponse.builder()
                 .id(c.getId())

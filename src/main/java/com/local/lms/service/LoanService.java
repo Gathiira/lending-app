@@ -1,5 +1,6 @@
 package com.local.lms.service;
 
+import com.local.lms.dto.request.ApplyLoanRequest;
 import com.local.lms.dto.request.CreateLoanRequest;
 import com.local.lms.dto.request.RepaymentRequest;
 import com.local.lms.dto.response.LoanResponse;
@@ -9,6 +10,7 @@ import java.util.List;
 
 public interface LoanService {
     LoanResponse createLoan(CreateLoanRequest request);
+    LoanResponse applyLoan(ApplyLoanRequest request);
     LoanResponse getLoan(Long id);
     LoanResponse getLoanByReference(String reference);
     List<LoanResponse> getCustomerLoans(Long customerId);

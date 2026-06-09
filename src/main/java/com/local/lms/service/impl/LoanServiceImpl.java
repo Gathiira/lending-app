@@ -2,6 +2,7 @@ package com.local.lms.service.impl;
 
 import com.local.lms.domain.entity.*;
 import com.local.lms.domain.enums.*;
+import com.local.lms.dto.request.ApplyLoanRequest;
 import com.local.lms.dto.request.CreateLoanRequest;
 import com.local.lms.dto.request.RepaymentRequest;
 import com.local.lms.dto.response.*;
@@ -34,41 +35,34 @@ public class LoanServiceImpl implements LoanService {
     private final CustomerRepository customerRepository;
     private final LoanProductRepository productRepository;
     private final NotificationService notificationService;
+    private final CreditLimitRepository creditLimitRepository;
 
-    @Override
     @Transactional
-    public LoanResponse createLoan(CreateLoanRequest request) {
-        Customer customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Customer", request.getCustomerId()));
-
-        LoanProduct product = productRepository.findById(request.getProductId())
-                .orElseThrow(() -> new ResourceNotFoundException("LoanProduct", request.getProductId()));
-
+    protected LoanResponse persistLoan(BigDecimal amount, LoanProduct product, Customer customer, String notes) {
         if (!product.getActive()) throw new BusinessException("Loan product is not active");
         if (!customer.getActive()) throw new BusinessException("Customer account is not active");
 
-        validateLoanAmount(request.getAmount(), product, customer);
+        validateLoanAmount(amount, product, customer);
 
         LocalDate disbursementDate = LocalDate.now();
         LocalDate dueDate = calculateDueDate(disbursementDate, product);
 
         // Deduct from customer limit
-        customer.setCurrentLoanLimit(customer.getCurrentLoanLimit().subtract(request.getAmount()));
+        customer.setCurrentLoanLimit(customer.getCurrentLoanLimit().subtract(amount));
         customerRepository.save(customer);
 
         Loan loan = Loan.builder()
                 .loanReference(generateReference())
                 .customer(customer)
                 .product(product)
-                .principalAmount(request.getAmount())
-                .outstandingBalance(request.getAmount())
+                .principalAmount(amount)
+                .outstandingBalance(amount)
                 .loanType(product.getLoanType())
                 .status(LoanStatus.OPEN)
-                .billingCycleType(request.getBillingCycleType() != null ? request.getBillingCycleType() : product.getBillingCycleType())
-                .consolidatedDueDate(request.getDueDate())
+                .billingCycleType(product.getBillingCycleType())
                 .disbursementDate(disbursementDate)
                 .dueDate(dueDate)
-                .notes(request.getNotes())
+                .notes(notes)
                 .build();
 
         loanRepository.save(loan);
@@ -81,12 +75,33 @@ public class LoanServiceImpl implements LoanService {
             generateInstallments(loan, product);
         }
 
-        loanRepository.save(loan);
+        Loan savedLoan = loanRepository.saveAndFlush(loan);
 
-        log.info("Created loan {} for customer {} amount={}", loan.getLoanReference(), customer.getEmail(), request.getAmount());
-        notificationService.sendNotification(customer, loan, NotificationEventType.LOAN_CREATED);
+        log.info("Created loan {} for customer {} amount={}", savedLoan.getLoanReference(), customer.getEmail(), amount);
+        notificationService.sendNotification(customer, savedLoan, NotificationEventType.LOAN_CREATED);
 
-        return mapToResponse(loan);
+        return mapToResponse(savedLoan);
+    }
+
+    @Override
+    @Transactional
+    public LoanResponse createLoan(CreateLoanRequest request) {
+        Customer customer = customerRepository.findById(request.getCustomerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Customer", request.getCustomerId()));
+
+        LoanProduct product = productRepository.findById(request.getProductId())
+                .orElseThrow(() -> new ResourceNotFoundException("LoanProduct", request.getProductId()));
+        return persistLoan(request.getAmount(), product, customer, request.getNotes());
+    }
+
+    @Override
+    @Transactional
+    public LoanResponse applyLoan(ApplyLoanRequest request) {
+        Customer customer = customerRepository.findById(request.getCustomerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Customer", request.getCustomerId()));
+        CreditLimit creditLimit =creditLimitRepository.findByCustomer(customer).orElseThrow(() -> new BusinessException("Customer does not have an active credit Limit"));
+        LoanProduct product = creditLimit.getLoanProduct();
+        return persistLoan(request.getAmount(), product, customer, request.getNotes());
     }
 
     @Override
@@ -187,11 +202,11 @@ public class LoanServiceImpl implements LoanService {
                 .notes(request.getNotes())
                 .build();
 
-        loanRepository.save(loan);
+        Loan savedLoan = loanRepository.save(loan);
         Repayment saved = repaymentRepository.save(repayment);
 
-        notificationService.sendNotification(loan.getCustomer(), loan, NotificationEventType.LOAN_REPAYMENT);
-        log.info("Repayment {} of {} made on loan {}", saved.getRepaymentReference(), request.getAmount(), loan.getLoanReference());
+        notificationService.sendNotification(savedLoan.getCustomer(), savedLoan, NotificationEventType.LOAN_REPAYMENT);
+        log.info("Repayment {} of {} made on loan {}", saved.getRepaymentReference(), request.getAmount(), savedLoan.getLoanReference());
 
         return mapRepaymentToResponse(saved);
     }

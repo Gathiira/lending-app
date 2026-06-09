@@ -24,6 +24,16 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseResult<Object> resourceNotFoundException(ResourceNotFoundException ex) {
+        log.error("error ", ex);
+        return ResponseResult.response(
+                "400",
+                ex.getMessage(),
+                null
+        );
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseResult<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
         log.error("error ", ex);
