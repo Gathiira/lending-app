@@ -1,0 +1,60 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: lms-postgres
+    environment:
+      POSTGRES_DB: lmsdb
+      POSTGRES_USER: local
+      POSTGRES_PASSWORD: localhost
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U local -d lmsdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lms-network
+
+  # LMS Application
+  lms-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lms-app
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/lmsdb
+      SPRING_DATASOURCE_USERNAME: local
+      SPRING_DATASOURCE_PASSWORD: localhost
+      JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      JWT_EXPIRATION_MS: 86400000
+      JWT_REFRESH_MS: 604800000
+      MAIL_HOST: smtp.gmail.com
+      MAIL_PORT: 587
+      MAIL_USERNAME: noreply@lending.com
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      EMAIL_ENABLED: "false"
+      SMS_ENABLED: "false"
+      MOCK_NOTIFICATIONS: "true"
+    ports:
+      - "8085:8085"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - lms-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  lms-network:
+    driver: bridge

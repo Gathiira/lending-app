@@ -71,17 +71,11 @@ public class CreditLimit extends BaseEntity {
         frozenLimit = frozenLimit.subtract(amount);
     }
 
-    public void release(BigDecimal amount) {
+    public void restoreLimit(BigDecimal amount) {
         if (amount.signum() <= 0) {
             throw new BusinessException("Amount must be positive");
         }
-
-        if (frozenLimit.compareTo(amount) < 0) {
-            throw new BusinessException("Cannot release more than frozen amount");
-        }
-
-        frozenLimit = frozenLimit.subtract(amount);
-        availableLimit = currentLimit.subtract(frozenLimit);
+        availableLimit = availableLimit.add(amount);
     }
 
 }

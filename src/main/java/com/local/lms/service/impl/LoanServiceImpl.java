@@ -42,7 +42,7 @@ public class LoanServiceImpl implements LoanService {
         if (!product.getActive()) throw new BusinessException("Loan product is not active");
         if (!customer.getActive()) throw new BusinessException("Customer account is not active");
 
-        validateLoanAmount(amount, product, customer);
+        validateLoanAmount(amount, product);
 
         LocalDate disbursementDate = LocalDate.now();
         LocalDate dueDate = calculateDueDate(disbursementDate, product);
@@ -200,7 +200,10 @@ public class LoanServiceImpl implements LoanService {
             loan.setClosedDate(LocalDate.now());
             // Restore customer limit
             Customer customer = loan.getCustomer();
-            customer.setCurrentLoanLimit(customer.getCurrentLoanLimit().add(loan.getPrincipalAmount()));
+            creditLimitRepository.findByCustomer(customer).ifPresent(limit -> {
+                limit.restoreLimit(loan.getPrincipalAmount());
+                creditLimitRepository.save(limit);
+            });
             customerRepository.save(customer);
             notificationService.sendNotification(customer, loan, NotificationEventType.LOAN_CLOSED);
         }
@@ -236,7 +239,11 @@ public class LoanServiceImpl implements LoanService {
         loan.setStatus(LoanStatus.CANCELLED);
         // Restore limit
         Customer customer = loan.getCustomer();
-        customer.setCurrentLoanLimit(customer.getCurrentLoanLimit().add(loan.getPrincipalAmount()));
+        // get credit limit
+        creditLimitRepository.findByCustomer(customer).ifPresent(limit -> {
+            limit.restoreLimit(loan.getPrincipalAmount());
+            creditLimitRepository.save(limit);
+        });
         customerRepository.save(customer);
         loanRepository.save(loan);
         notificationService.sendNotification(customer, loan, NotificationEventType.LOAN_CANCELLED);
@@ -336,15 +343,12 @@ public class LoanServiceImpl implements LoanService {
         return loanRepository.findByIdAndCustomerId(id, customerId).orElseThrow(() -> new ResourceNotFoundException("Loan", id));
     }
 
-    private void validateLoanAmount(BigDecimal amount, LoanProduct product, Customer customer) {
+    private void validateLoanAmount(BigDecimal amount, LoanProduct product) {
         if (amount.compareTo(product.getMinAmount()) < 0) {
             throw new BusinessException("Amount is below the product minimum of " + product.getMinAmount());
         }
         if (amount.compareTo(product.getMaxAmount()) > 0) {
             throw new BusinessException("Amount exceeds product maximum of " + product.getMaxAmount());
-        }
-        if (amount.compareTo(customer.getCurrentLoanLimit()) > 0) {
-            throw new BusinessException("Amount exceeds customer's available limit of " + customer.getCurrentLoanLimit());
         }
     }
 
