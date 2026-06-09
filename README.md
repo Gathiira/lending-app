@@ -62,3 +62,27 @@ Flyway-managed migrations with versioned schema (V1-V4):
 - Seed data for products and customers
 - Security account configuration
 - User account data
+
+### Running the Application using docker compose
+1. Ensure Docker and Docker Compose are installed on your machine.
+2. Clone the repository and navigate to the project directory.
+3. Run the following command to start the application and PostgreSQL database:
+    ```bash
+      docker-compose up --build
+    ```
+4. The application will automatically run Flyway migrations to set up the database schema and seed initial data.
+5. The application will be accessible at `http://localhost:8085`.
+6. use the postman Api collection provided in the [lms postman collection](lms.postman_collection.json)  to test the API endpoints.
+
+### logical flow of the application
+1. **Customer Onboarding**: Create customer profiles and set credit limits.
+  - the customer applies a credit limit request which is then approved by an admin. Once approved, the customer can apply for loans up to their credit limit.
+2. **Loan Product Configuration**: Define loan products with fees and billing modes.
+  - this is already seeded in the db
+3. **Loan Creation**: Create loans for customers based on products and credit limits.
+    - customer using /apply-loan, can apply loan using their credit limit. The system checks if the requested amount is within the customer's credit limit and if the loan product is valid before creating the loan.
+4. **Loan Disbursement**: Disburse funds to customers.
+5. **Repayment Processing**: Handle customer payments and update loan status.
+6. **Automated Sweep**: Scheduled job to detect overdue loans and apply late fees.
+7. **Event Notifications**: Notify customers of loan events (creation, disbursement, repayment, overdue).
+8. **Security**: Authenticate users and authorize access to endpoints based on roles
