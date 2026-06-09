@@ -4,15 +4,12 @@ import com.local.lms.domain.enums.NotificationChannel;
 import com.local.lms.domain.enums.NotificationEventType;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "notification_templates",
         uniqueConstraints = @UniqueConstraint(columnNames = {"event", "channel"}))
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class NotificationTemplate {
+public class NotificationTemplate extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,10 +32,4 @@ public class NotificationTemplate {
     @Column(nullable = false)
     private Boolean active = true;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
 }

@@ -6,12 +6,11 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "loan_fees")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class LoanFee {
+public class LoanFee extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,7 +42,4 @@ public class LoanFee {
 
     @Column(columnDefinition = "TEXT")
     private String description;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
 }

@@ -3,16 +3,14 @@ package com.local.lms.domain.entity;
 import com.local.lms.domain.enums.LoanStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "loan_installments")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class LoanInstallment {
+public class LoanInstallment extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,10 +39,4 @@ public class LoanInstallment {
     @Column(name = "status", nullable = false, columnDefinition = "loan_status")
     private LoanStatus status = LoanStatus.OPEN;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
 }

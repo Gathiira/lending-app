@@ -5,17 +5,15 @@ import com.local.lms.domain.enums.LoanType;
 import com.local.lms.domain.enums.TenureType;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "loan_products")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class LoanProduct {
+public class LoanProduct extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -56,13 +54,6 @@ public class LoanProduct {
 
     @Column(nullable = false)
     private Boolean active = true;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<ProductFee> fees = new ArrayList<>();

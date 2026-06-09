@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "notifications")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class Notification {
+public class Notification extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -52,6 +52,4 @@ public class Notification {
     @Column(name = "sent_at")
     private LocalDateTime sentAt;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
 }
