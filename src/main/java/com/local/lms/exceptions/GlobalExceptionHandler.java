@@ -16,6 +16,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseResult<Object> handleBusinessException(BusinessException ex) {
+        log.error("error ", ex);
         return ResponseResult.response(
                 ex.getCode(),
                 ex.getMessage(),
@@ -25,6 +26,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseResult<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        log.error("error ", ex);
         return ResponseResult.response(
                 ResponseCode.BAD_REQUEST.getCode(),
                 "Request body is missing or invalid JSON",
@@ -34,7 +36,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseResult<Object> handleValidation(MethodArgumentNotValidException ex) {
-
+        log.error("error ", ex);
         List<FieldErrorResponse> errors = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()

@@ -55,10 +55,10 @@ public class ResponseResult<T> implements Serializable {
 
     public static <T> ResponseResult<T> response(String code, String msg, T data) {
         ResponseResult<T> responseResult = new ResponseResult<>();
-        responseResult.setTimestamp(LocalDateTime.now());
-        responseResult.setCode(code);
         responseResult.setMsg(msg);
+        responseResult.setCode(code);
         responseResult.setData(data);
+        responseResult.setTimestamp(LocalDateTime.now());
         return responseResult;
     }
 }
