@@ -20,7 +20,7 @@ services:
       - lms-network
 
   # LMS Application
-  lms-app:
+  app:
     build:
       context: .
       dockerfile: Dockerfile
