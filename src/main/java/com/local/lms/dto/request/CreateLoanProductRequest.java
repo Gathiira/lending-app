@@ -26,6 +26,10 @@ public class CreateLoanProductRequest {
     @DecimalMin(value = "1.0", message = "Max amount must be positive")
     private BigDecimal maxAmount;
 
+    @NotNull(message = "Interest rate is required")
+    @DecimalMin(value = "0.1", message = "Interest rate must be positive")
+    private BigDecimal interestRate;
+
     @NotNull(message = "Tenure value is required")
     @Min(value = 1, message = "Tenure value must be at least 1")
     private Integer tenureValue;

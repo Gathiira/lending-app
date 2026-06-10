@@ -41,6 +41,7 @@ public class ProductServiceImpl implements ProductService {
                 .description(request.getDescription())
                 .minAmount(request.getMinAmount())
                 .maxAmount(request.getMaxAmount())
+                .interestRate(request.getInterestRate())
                 .tenureValue(request.getTenureValue())
                 .tenureType(request.getTenureType())
                 .loanType(request.getLoanType())
@@ -99,6 +100,7 @@ public class ProductServiceImpl implements ProductService {
         product.setDescription(request.getDescription());
         product.setMinAmount(request.getMinAmount());
         product.setMaxAmount(request.getMaxAmount());
+        product.setInterestRate(request.getInterestRate());
         product.setTenureValue(request.getTenureValue());
         product.setTenureType(request.getTenureType());
         product.setLoanType(request.getLoanType());

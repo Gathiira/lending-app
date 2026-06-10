@@ -23,10 +23,12 @@ public class ProductFee extends BaseEntity{
 
     @Enumerated(EnumType.STRING)
     @Column(name = "fee_type", nullable = false, columnDefinition = "fee_type")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
     private FeeType feeType;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "calculation_method", nullable = false, columnDefinition = "fee_calculation_method")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
     private FeeCalculationMethod calculationMethod;
 
     @Column(nullable = false, precision = 19, scale = 4)

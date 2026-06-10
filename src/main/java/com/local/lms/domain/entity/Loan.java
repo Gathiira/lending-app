@@ -53,10 +53,6 @@ public class Loan extends BaseEntity {
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
     private BillingCycleType billingCycleType = BillingCycleType.INDIVIDUAL;
 
-    /** Used when billing_cycle_type = CONSOLIDATED */
-    @Column(name = "consolidated_due_date")
-    private LocalDate consolidatedDueDate;
-
     @Column(name = "disbursement_date", nullable = false)
     private LocalDate disbursementDate;
 

@@ -481,7 +481,6 @@ public class LoanServiceImpl implements LoanService {
                 .loanType(loan.getLoanType())
                 .loanStatus(loan.getStatus())
                 .billingCycleType(loan.getBillingCycleType())
-                .dueDate(loan.getConsolidatedDueDate())
                 .disbursementDate(loan.getDisbursementDate())
                 .dueDate(loan.getDueDate())
                 .closedDate(loan.getClosedDate())

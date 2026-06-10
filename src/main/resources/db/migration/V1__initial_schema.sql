@@ -93,7 +93,6 @@ CREATE TABLE loans (
                        loan_type               loan_type NOT NULL,
                        status                   loan_status NOT NULL DEFAULT 'OPEN',
                        billing_cycle_type      billing_cycle_type NOT NULL DEFAULT 'INDIVIDUAL',
-                       consolidated_due_date   DATE,
                        disbursement_date       DATE NOT NULL,
                        due_date                DATE NOT NULL,
                        closed_date             DATE,
