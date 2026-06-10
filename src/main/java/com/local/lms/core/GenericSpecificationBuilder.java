@@ -18,14 +18,10 @@ public class GenericSpecificationBuilder<T> {
             Predicate predicate = cb.conjunction();
 
             for (var entry : filters.entrySet()) {
-
                 Path<?> path = resolvePath(root, entry.getKey());
                 SearchRule rule = entry.getValue();
-
-                predicate = cb.and(predicate,
-                        buildPredicate(cb, path, rule));
+                predicate = cb.and(predicate, buildPredicate(cb, path, rule));
             }
-
             return predicate;
         };
     }
