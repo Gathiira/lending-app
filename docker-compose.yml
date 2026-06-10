@@ -35,7 +35,7 @@ services:
       JWT_REFRESH_MS: 604800000
       MAIL_HOST: smtp.gmail.com
       MAIL_PORT: 587
-      MAIL_USERNAME: noreply@lending.com
+      MAIL_USERNAME: noreply@lms.com
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       EMAIL_ENABLED: "false"
       SMS_ENABLED: "false"
