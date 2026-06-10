@@ -1,10 +1,8 @@
 package com.local.lms.controller;
 
 import com.local.lms.dto.request.ApproveCustomerLimitRequest;
-import com.local.lms.dto.response.CreditLimitRequestResponse;
-import com.local.lms.dto.response.CreditLimitResponse;
-import com.local.lms.dto.response.CustomerResponse;
-import com.local.lms.dto.response.ResponseResult;
+import com.local.lms.dto.request.CreditSearchRequest;
+import com.local.lms.dto.response.*;
 import com.local.lms.service.CreditService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,8 +22,8 @@ public class CreditController extends  BaseController {
 
     @GetMapping
     @Operation(summary = "Get limit requests")
-    public ResponseResult<List<CreditLimitRequestResponse>> getByLimitRequest() {
-        return ResponseResult.success(creditService.getLimitRequests());
+    public ResponseResult<PaginatedResponse<CreditLimitRequestResponse>> getByLimitRequest(CreditSearchRequest request) {
+        return ResponseResult.success(creditService.getPage(request, getPageable()));
     }
 
     @GetMapping("/limits")

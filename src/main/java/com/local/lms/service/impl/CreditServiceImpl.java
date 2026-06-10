@@ -7,9 +7,11 @@ import com.local.lms.domain.entity.LoanProduct;
 import com.local.lms.domain.enums.ApprovalStatus;
 import com.local.lms.domain.enums.CreditLimitStatus;
 import com.local.lms.dto.request.ApproveCustomerLimitRequest;
+import com.local.lms.dto.request.CreditSearchRequest;
 import com.local.lms.dto.request.CustomerLimitRequest;
 import com.local.lms.dto.response.CreditLimitRequestResponse;
 import com.local.lms.dto.response.CreditLimitResponse;
+import com.local.lms.dto.response.PaginatedResponse;
 import com.local.lms.exceptions.BusinessException;
 import com.local.lms.exceptions.ExceptionAssert;
 import com.local.lms.exceptions.ResourceNotFoundException;
@@ -21,6 +23,8 @@ import com.local.lms.service.CreditService;
 import com.local.lms.service.CustomerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +36,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class CreditServiceImpl implements CreditService {
+public class CreditServiceImpl extends BaseServiceImpl<CreditLimitRequest> implements CreditService {
 
     private final CustomerService customerService;
     private final CreditLimitRequestRepository creditLimitRequestRepository;
@@ -44,7 +48,15 @@ public class CreditServiceImpl implements CreditService {
     @Override
     public List<CreditLimitRequestResponse> getLimitRequests() {
         return creditLimitRequestRepository.findAll().stream().map(this::mapToLimitRequestResponse).collect(Collectors.toList());
-    }   @Override
+    }
+
+    @Override
+    public PaginatedResponse<CreditLimitRequestResponse> getPage(CreditSearchRequest request, Pageable pageable){
+        Page<CreditLimitRequest> page = creditLimitRequestRepository.findAll(getSpecifications(request), pageable);
+        return toResponse(page, this::mapToLimitRequestResponse);
+    }
+
+    @Override
     public List<CreditLimitRequestResponse> getLimitRequests(Long customerId) {
         return creditLimitRequestRepository.findByCustomerId(customerId).stream().map(this::mapToLimitRequestResponse).collect(Collectors.toList());
     }
