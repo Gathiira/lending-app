@@ -2,9 +2,7 @@ package com.local.lms.service.impl;
 
 import com.local.lms.domain.entity.*;
 import com.local.lms.domain.enums.*;
-import com.local.lms.dto.request.ApplyLoanRequest;
-import com.local.lms.dto.request.CreateLoanRequest;
-import com.local.lms.dto.request.RepaymentRequest;
+import com.local.lms.dto.request.*;
 import com.local.lms.dto.response.*;
 import com.local.lms.exceptions.BusinessException;
 import com.local.lms.exceptions.ResourceNotFoundException;
@@ -13,6 +11,8 @@ import com.local.lms.service.LoanService;
 import com.local.lms.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class LoanServiceImpl implements LoanService {
+public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanService {
 
     private final LoanRepository loanRepository;
     private final LoanInstallmentRepository installmentRepository;
@@ -133,6 +133,13 @@ public class LoanServiceImpl implements LoanService {
     public List<LoanResponse> getLoans() {
         return loanRepository.findAll().stream()
                 .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponse<LoanResponse> getPage(LoanSearchRequest request, Pageable pageable) {
+        Page<Loan> page = loanRepository.findAll(getSpecifications(request), pageable);
+        return toResponse(page, this::mapToResponse);
     }
 
     @Override

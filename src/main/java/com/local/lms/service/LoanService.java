@@ -2,9 +2,12 @@ package com.local.lms.service;
 
 import com.local.lms.dto.request.ApplyLoanRequest;
 import com.local.lms.dto.request.CreateLoanRequest;
+import com.local.lms.dto.request.LoanSearchRequest;
 import com.local.lms.dto.request.RepaymentRequest;
 import com.local.lms.dto.response.LoanResponse;
+import com.local.lms.dto.response.PaginatedResponse;
 import com.local.lms.dto.response.RepaymentResponse;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -15,6 +18,7 @@ public interface LoanService {
     LoanResponse getLoanByReference(String reference);
     List<LoanResponse> getCustomerLoans(Long customerId);
     List<LoanResponse> getLoans();
+    PaginatedResponse<LoanResponse> getPage(LoanSearchRequest request, Pageable pageable);
     RepaymentResponse makeRepayment(RepaymentRequest request);
     LoanResponse cancelLoan(Long id);
     LoanResponse writeOffLoan(Long id);

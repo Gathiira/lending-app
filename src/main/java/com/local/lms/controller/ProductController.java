@@ -1,12 +1,16 @@
 package com.local.lms.controller;
 
+import com.local.lms.domain.entity.LoanProduct;
 import com.local.lms.dto.request.CreateLoanProductRequest;
+import com.local.lms.dto.request.ProductSearchRequest;
+import com.local.lms.dto.response.PaginatedResponse;
 import com.local.lms.dto.response.ResponseResult;
 import com.local.lms.dto.response.ProductResponse;
 import com.local.lms.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,13 +38,18 @@ public class ProductController extends  BaseController {
 
     @GetMapping
     @Operation(summary = "Get all loan products")
-    public ResponseResult<List<ProductResponse>> getAll(
-            @RequestParam(defaultValue = "false") boolean activeOnly) {
-        List<ProductResponse> products = activeOnly
-                ? productService.getActiveProducts()
-                : productService.getAllProducts();
-        return ResponseResult.success(products);
+    public ResponseResult<PaginatedResponse<ProductResponse>> getAll(ProductSearchRequest searchRequest) {
+        return ResponseResult.success(productService.getPage(searchRequest, getPageable()));
     }
+
+
+//    @GetMapping
+//    @Operation(summary = "Get all loan products")
+//    public ResponseResult<List<ProductResponse>> getAll() {
+//        List<ProductResponse> products = productService.getAllProducts();
+//        return ResponseResult.success(products);
+//    }
+
 
     @PutMapping("/{id}")
     @Operation(summary = "Update a loan product")

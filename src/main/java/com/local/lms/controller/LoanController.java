@@ -1,6 +1,8 @@
 package com.local.lms.controller;
 
 import com.local.lms.dto.request.CreateLoanRequest;
+import com.local.lms.dto.request.LoanSearchRequest;
+import com.local.lms.dto.response.PaginatedResponse;
 import com.local.lms.dto.response.ResponseResult;
 import com.local.lms.dto.response.LoanResponse;
 import com.local.lms.service.LoanService;
@@ -22,8 +24,8 @@ public class LoanController  extends  BaseController{
 
     @GetMapping()
     @Operation(summary = "Get all loans")
-    public ResponseResult<List<LoanResponse>> getLoans() {
-        return ResponseResult.success(loanService.getLoans());
+    public ResponseResult<PaginatedResponse<LoanResponse>> getLoans(LoanSearchRequest  request) {
+        return ResponseResult.success(loanService.getPage(request, getPageable()));
     }
 
     @PostMapping

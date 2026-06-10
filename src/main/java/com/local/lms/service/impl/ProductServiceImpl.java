@@ -4,6 +4,8 @@ import com.local.lms.domain.entity.LoanProduct;
 import com.local.lms.domain.entity.ProductFee;
 import com.local.lms.dto.request.CreateLoanProductRequest;
 import com.local.lms.dto.request.ProductFeeRequest;
+import com.local.lms.dto.request.ProductSearchRequest;
+import com.local.lms.dto.response.PaginatedResponse;
 import com.local.lms.dto.response.ProductFeeResponse;
 import com.local.lms.dto.response.ProductResponse;
 import com.local.lms.exceptions.BusinessException;
@@ -13,6 +15,8 @@ import com.local.lms.repository.ProductFeeRepository;
 import com.local.lms.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +27,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ProductServiceImpl implements ProductService {
+public class ProductServiceImpl extends BaseServiceImpl<LoanProduct> implements ProductService {
 
     private final LoanProductRepository productRepository;
     private final ProductFeeRepository productFeeRepository;
@@ -74,7 +78,14 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public List<ProductResponse> getAllProducts() {
-        return productRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+        return productRepository.findAll().stream().map(this::mapToResponse).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponse<ProductResponse> getPage(ProductSearchRequest request, Pageable pageable) {
+        Page<LoanProduct> page = productRepository.findAll(getSpecifications(request), pageable);
+        return toResponse(page, this::mapToResponse);
     }
 
     @Override
