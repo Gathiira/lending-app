@@ -35,3 +35,13 @@ Flyway-managed migrations with versioned schema (V1-V5):
 5. The application will be accessible at `http://localhost:8085`.
 6. use the postman Api collection provided in the [lms postman collection](lms.postman_collection.json)  to test the API endpoints.
 
+default credentials for testing:
+- **api :** `http://localhost:8085/api/v1/auth/login`
+- payload:
+   ```
+   {
+       "username": "otieno",
+       "password": "Password1!"
+   }
+   ```
+
