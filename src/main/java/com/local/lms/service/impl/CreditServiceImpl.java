@@ -151,7 +151,7 @@ public class CreditServiceImpl extends BaseServiceImpl<CreditLimitRequest> imple
                 ExceptionAssert.throwException("Decrease amount exceeds current limit");
             }
             if (newAvailable.compareTo(BigDecimal.ZERO) < 0) {
-                ExceptionAssert.throwException("Decrease amount exceeds available limit, customer has outstanding utilization");
+                ExceptionAssert.throwException("Decrease amount exceeds available limit. Customer has outstanding utilization");
             }
 
             creditLimit.setCurrentLimit(newCurrent);

@@ -5,6 +5,7 @@ import com.local.lms.dto.request.CreditLimitAdjustmentRequest;
 import com.local.lms.dto.request.CreditSearchRequest;
 import com.local.lms.dto.response.*;
 import com.local.lms.service.CreditService;
+import com.local.lms.service.CreditWorthinessService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import java.util.List;
 public class CreditController extends  BaseController {
 
     private final CreditService creditService;
+    private final CreditWorthinessService creditWorthinessService;
 
     @GetMapping
     @Operation(summary = "Get limit requests")
@@ -46,5 +48,10 @@ public class CreditController extends  BaseController {
             @PathVariable Long customerId,
             @Validated @RequestBody CreditLimitAdjustmentRequest request) {
         return ResponseResult.success("Credit limit adjusted", creditService.adjustCreditLimit(customerId, request));
+    }
+
+    @GetMapping("/customer/{customerId}/credit-score")
+    public ResponseResult<CreditScoreResult> getCreditScore(@PathVariable Long customerId, @RequestParam(required = false) Long productId) {
+        return ResponseResult.success(creditWorthinessService.evaluate(customerId, productId));
     }
 }

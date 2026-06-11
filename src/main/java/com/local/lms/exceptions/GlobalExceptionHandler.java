@@ -6,7 +6,9 @@ import com.local.lms.dto.response.ResponseResult;
 import jakarta.validation.UnexpectedTypeException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -61,6 +63,7 @@ public class GlobalExceptionHandler {
                 errors
         );
     }
+
     @ExceptionHandler(InvalidFormatException.class)
     public ResponseResult<Object> invalidFormatHandler(InvalidFormatException ex) {
         log.error("InvalidFormatException ", ex);
@@ -70,12 +73,33 @@ public class GlobalExceptionHandler {
                 null
         );
     }
+
     @ExceptionHandler(UnexpectedTypeException.class)
     public ResponseResult<Object> invalidFormatHandler(UnexpectedTypeException ex) {
         log.error("UnexpectedTypeException ", ex);
         return ResponseResult.response(
                 ResponseCode.BAD_REQUEST.getCode(),
                 "Invalid request payload",
+                null
+        );
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseResult<Object> methodNotSupportedHandler(HttpRequestMethodNotSupportedException ex) {
+        log.error("HttpRequestMethodNotSupportedException ", ex);
+        return ResponseResult.response(
+                ResponseCode.BAD_REQUEST.getCode(),
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseResult<Object> methodNotSupportedHandler(MissingServletRequestParameterException ex) {
+        log.error("MissingServletRequestParameterException ", ex);
+        return ResponseResult.response(
+                ResponseCode.BAD_REQUEST.getCode(),
+                ex.getMessage(),
                 null
         );
     }

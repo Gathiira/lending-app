@@ -454,11 +454,11 @@ public class LoanServiceImpl extends BaseServiceImpl<Loan> implements LoanServic
         loan.setClosedDate(LocalDate.now());
 
         Customer customer = loan.getCustomer();
-        creditLimitRepository.findByCustomer(customer).ifPresent(limit -> {
-            limit.restoreLimit(loan.getPrincipalAmount());
-            creditLimitRepository.save(limit);
-        });
-        customerRepository.save(customer);
+//        creditLimitRepository.findByCustomer(customer).ifPresent(limit -> {
+//            limit.restoreLimit(loan.getPrincipalAmount());
+//            creditLimitRepository.save(limit);
+//        });
+//        customerRepository.save(customer);
         notificationService.sendNotification(customer, loan, NotificationEventType.LOAN_CLOSED);
     }
 
