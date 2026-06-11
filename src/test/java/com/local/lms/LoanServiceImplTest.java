@@ -2,7 +2,7 @@ package com.local.lms;
 
 import com.local.lms.domain.entity.*;
 import com.local.lms.domain.enums.*;
-import com.local.lms.dto.request.CreateLoanRequest;
+import com.local.lms.dto.request.ApplyLoanRequest;
 import com.local.lms.dto.request.RepaymentRequest;
 import com.local.lms.dto.response.LoanResponse;
 import com.local.lms.dto.response.RepaymentResponse;
@@ -39,6 +39,7 @@ class LoanServiceImplTest {
     @Mock private LoanProductRepository productRepository;
     @Mock private NotificationService notificationService;
     @Mock LoanInstallmentRepository installmentRepository;
+    @Mock CreditLimitRepository creditLimitRepository;
 
     // ----------------------------
     // CREATE LOAN - SUCCESS
@@ -66,17 +67,26 @@ class LoanServiceImplTest {
                 .fees(new ArrayList<>())
                 .build();
 
-        CreateLoanRequest request = new CreateLoanRequest();
+
+        CreditLimit creditLimit = CreditLimit.builder()
+                .id(1L)
+                .customer(customer)
+                .loanProduct(product)
+                .availableLimit(new BigDecimal("10000"))
+                .frozenLimit(new BigDecimal("0"))
+                .currentLimit(new BigDecimal("10000"))
+                .build();
+
+        ApplyLoanRequest request = new ApplyLoanRequest();
         request.setCustomerId(1L);
-        request.setProductId(1L);
         request.setAmount(new BigDecimal("2000"));
 
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(creditLimitRepository.findByCustomer(customer)).thenReturn(Optional.of(creditLimit));
         when(loanRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(loanFeeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        LoanResponse response = loanService.createLoan(request);
+        LoanResponse response = loanService.applyLoan(request);
 
         assertThat(response).isNotNull();
         assertThat(response.getPrincipalAmount()).isEqualByComparingTo("2000");
@@ -109,15 +119,23 @@ class LoanServiceImplTest {
                 .active(false)
                 .build();
 
-        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        CreditLimit creditLimit = CreditLimit.builder()
+                .id(1L)
+                .customer(customer)
+                .loanProduct(product)
+                .availableLimit(new BigDecimal("10000"))
+                .frozenLimit(new BigDecimal("0"))
+                .currentLimit(new BigDecimal("10000"))
+                .build();
 
-        CreateLoanRequest request = new CreateLoanRequest();
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
+        when(creditLimitRepository.findByCustomer(customer)).thenReturn(Optional.of(creditLimit));
+
+        ApplyLoanRequest request = new ApplyLoanRequest();
         request.setCustomerId(1L);
-        request.setProductId(1L);
         request.setAmount(new BigDecimal("2000"));
 
-        assertThatThrownBy(() -> loanService.createLoan(request))
+        assertThatThrownBy(() -> loanService.applyLoan(request))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Loan product is not active");
     }
@@ -134,28 +152,22 @@ class LoanServiceImplTest {
                 .currentLoanLimit(new BigDecimal("1000"))
                 .build();
 
-        LoanProduct product = LoanProduct.builder()
+        CreditLimit creditLimit = CreditLimit.builder()
                 .id(1L)
-                .active(true)
-                .minAmount(new BigDecimal("500"))
-                .maxAmount(new BigDecimal("5000"))
-                .interestRate(new BigDecimal("10.0"))
-                .loanType(LoanType.LUMP_SUM)
-                .billingCycleType(BillingCycleType.INDIVIDUAL)
-                .tenureType(TenureType.MONTHS)
-                .tenureValue(1)
-                .fees(new ArrayList<>())
+                .customer(customer)
+                .availableLimit(new BigDecimal("1000"))
+                .frozenLimit(new BigDecimal("0"))
+                .currentLimit(new BigDecimal("1000"))
                 .build();
 
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(creditLimitRepository.findByCustomer(customer)).thenReturn(Optional.of(creditLimit));
 
-        CreateLoanRequest request = new CreateLoanRequest();
-        request.setCustomerId(1L);
-        request.setProductId(1L);
+        ApplyLoanRequest request = new ApplyLoanRequest();
+        request.setCustomerId(customer.getId());
         request.setAmount(new BigDecimal("2000"));
 
-        assertThatThrownBy(() -> loanService.createLoan(request))
+        assertThatThrownBy(() -> loanService.applyLoan(request))
                 .isInstanceOf(BusinessException.class);
     }
 
@@ -183,6 +195,7 @@ class LoanServiceImplTest {
         Loan loan = Loan.builder()
                 .id(1L)
                 .status(LoanStatus.OPEN)
+                .loanReference("LN-123")
                 .principalAmount(new BigDecimal("2000"))
                 .outstandingBalance(new BigDecimal("2200")) // includes interest
                 .customer(Customer.builder().id(1L).build())
@@ -223,33 +236,70 @@ class LoanServiceImplTest {
 
         Customer customer = Customer.builder()
                 .id(1L)
-                .currentLoanLimit(new BigDecimal("1000"))
+                .active(true)
+                .email("test@mail.com")
                 .build();
+
+        LoanProduct product = LoanProduct.builder()
+                .id(1L)
+                .active(true)
+                .minAmount(new BigDecimal("1000"))
+                .maxAmount(new BigDecimal("5000"))
+                .interestRate(new BigDecimal("10.0"))
+                .loanType(LoanType.LUMP_SUM)
+                .billingCycleType(BillingCycleType.INDIVIDUAL)
+                .tenureType(TenureType.MONTHS)
+                .tenureValue(1)
+                .fees(new ArrayList<>())
+                .build();
+
+        CreditLimit creditLimit = CreditLimit.builder()
+                .id(1L)
+                .customer(customer)
+                .loanProduct(product)
+                .availableLimit(new BigDecimal("1500"))
+                .frozenLimit(new BigDecimal("0"))
+                .currentLimit(new BigDecimal("1500"))
+                .build();
+
+        ApplyLoanRequest request = new ApplyLoanRequest();
+        request.setCustomerId(1L);
+        request.setAmount(new BigDecimal("1500"));
+
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
+        when(loanRepository.save(any())).thenAnswer(inv -> {
+            Loan loan = inv.getArgument(0);
+            loan.setId(1L);
+            return loan;
+        });
+        when(loanFeeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(creditLimitRepository.findByCustomer(customer)).thenReturn(Optional.of(creditLimit));
+
+        LoanResponse response = loanService.applyLoan(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getPrincipalAmount()).isEqualByComparingTo("1500");
+        assertThat(creditLimit.getAvailableLimit()).isEqualByComparingTo("0");
+
+        verify(loanRepository, atLeastOnce()).save(any(Loan.class));
 
         Loan loan = Loan.builder()
                 .id(1L)
-                .status(LoanStatus.OPEN)
-                .principalAmount(new BigDecimal("500"))
                 .customer(customer)
-                .product(LoanProduct.builder()
-                        .id(1L)
-                        .interestRate(new BigDecimal("10.0"))
-                        .loanType(LoanType.LUMP_SUM)
-                        .billingCycleType(BillingCycleType.INDIVIDUAL)
-                        .tenureType(TenureType.MONTHS)
-                        .tenureValue(1)
-                        .build())
+                .product(product)
+                .principalAmount(new BigDecimal("1500"))
+                .status(LoanStatus.OPEN)
                 .build();
 
         when(loanRepository.findById(1L)).thenReturn(Optional.of(loan));
 
         loanService.cancelLoan(1L);
 
-        assertThat(customer.getCurrentLoanLimit())
-                .isEqualByComparingTo("1500");
+        assertThat(creditLimit.getAvailableLimit()).isEqualByComparingTo("1500");
 
         verify(customerRepository).save(customer);
-        verify(notificationService).sendNotification(eq(customer), any(), any());
+        verify(notificationService, times(1)).sendNotification(eq(customer), any(), eq(NotificationEventType.LOAN_CREATED));
+        verify(notificationService, times(1)).sendNotification(eq(customer), any(), eq(NotificationEventType.LOAN_CANCELLED));
     }
 
     // ----------------------------

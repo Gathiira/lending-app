@@ -17,42 +17,56 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Imperative layer: owns transactions, persistence, and notifications.
+ *
+ * <p>All financial calculations are delegated to {@link LoanCalculator}.
+ * Nothing in this class performs arithmetic or generates dates directly;
+ * it only wires together repositories, domain entities, and side-effects
+ * (DB writes, notifications, logging).
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanService {
+public class LoanServiceImpl extends BaseServiceImpl<Loan> implements LoanService {
 
-    private final LoanRepository loanRepository;
-    private final LoanInstallmentRepository installmentRepository;
-    private final LoanFeeRepository loanFeeRepository;
-    private final RepaymentRepository repaymentRepository;
-    private final CustomerRepository customerRepository;
-    private final LoanProductRepository productRepository;
-    private final NotificationService notificationService;
-    private final CreditLimitRepository creditLimitRepository;
+    private final LoanRepository             loanRepository;
+    private final LoanInstallmentRepository  installmentRepository;
+    private final LoanFeeRepository          loanFeeRepository;
+    private final RepaymentRepository        repaymentRepository;
+    private final CustomerRepository         customerRepository;
+    private final LoanProductRepository      productRepository;
+    private final NotificationService        notificationService;
+    private final CreditLimitRepository      creditLimitRepository;
+
+    // =========================================================================
+    // Loan creation
+    // =========================================================================
 
     @Transactional
-    protected LoanResponse persistLoan(BigDecimal amount, LoanProduct product, Customer customer, String notes) {
+    protected LoanResponse persistLoan(BigDecimal amount, LoanProduct product,
+                                       Customer customer, String notes) {
         if (!product.getActive()) throw new BusinessException("Loan product is not active");
         if (!customer.getActive()) throw new BusinessException("Customer account is not active");
 
-        validateLoanAmount(amount, product);
+        // --- pure calculation ---
+        LoanCalculator.validateLoanAmount(amount, product);
 
-        LocalDate disbursementDate = LocalDate.now();
-        LocalDate dueDate = calculateDueDate(disbursementDate, product);
+        LocalDate disbursementDate   = LocalDate.now();
+        LocalDate dueDate            = LoanCalculator.calculateDueDate(disbursementDate, product);
+        BigDecimal openingBalance    = LoanCalculator.calculateOpeningOutstandingBalance(amount, product);
 
+        // --- persistence ---
         Loan loan = Loan.builder()
-                .loanReference(generateReference())
+                .loanReference(LoanCalculator.generateLoanReference())
                 .customer(customer)
                 .product(product)
                 .principalAmount(amount)
-                .outstandingBalance(amount)
+                .outstandingBalance(openingBalance)   // pre-calculated, not incremented inline
                 .loanType(product.getLoanType())
                 .status(LoanStatus.OPEN)
                 .billingCycleType(product.getBillingCycleType())
@@ -63,19 +77,17 @@ public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanServi
 
         loanRepository.save(loan);
 
-        // Apply service fee
-        applyServiceFee(loan, product);
+        persistServiceFees(loan, product);
+        persistInterestFee(loan, product);
 
-        // Apply interest fee
-        applyInterestFee(loan, product);
-
-        // Generate installments for installment loans
         if (product.getLoanType() == LoanType.INSTALLMENT) {
-            generateInstallments(loan, product);
+            persistInstallments(loan, product);
         }
+
         loanRepository.saveAndFlush(loan);
 
-        log.info("Created loan {} for customer {} amount={}", loan.getLoanReference(), customer.getEmail(), amount);
+        log.info("Created loan {} for customer {} amount={}",
+                loan.getLoanReference(), customer.getEmail(), amount);
         notificationService.sendNotification(customer, loan, NotificationEventType.LOAN_CREATED);
 
         return mapToResponse(loan);
@@ -86,9 +98,9 @@ public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanServi
     public LoanResponse createLoan(CreateLoanRequest request) {
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", request.getCustomerId()));
-
         LoanProduct product = productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new ResourceNotFoundException("LoanProduct", request.getProductId()));
+
         return persistLoan(request.getAmount(), product, customer, request.getNotes());
     }
 
@@ -97,15 +109,24 @@ public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanServi
     public LoanResponse applyLoan(ApplyLoanRequest request) {
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", request.getCustomerId()));
-        CreditLimit creditLimit =creditLimitRepository.findByCustomer(customer).orElseThrow(() -> new BusinessException("Customer does not have an active credit Limit"));
-        LoanProduct product = creditLimit.getLoanProduct();
+
+        CreditLimit creditLimit = creditLimitRepository.findByCustomer(customer)
+                .orElseThrow(() -> new BusinessException("Customer does not have an active credit limit"));
 
         creditLimit.freeze(request.getAmount());
-        LoanResponse loanResponse =  persistLoan(request.getAmount(), product, customer, request.getNotes());
+
+        LoanResponse loanResponse = persistLoan(
+                request.getAmount(), creditLimit.getLoanProduct(), customer, request.getNotes());
+
         creditLimit.utilizeFrozenLimit(loanResponse.getPrincipalAmount());
         creditLimitRepository.save(creditLimit);
+
         return loanResponse;
     }
+
+    // =========================================================================
+    // Queries
+    // =========================================================================
 
     @Override
     @Transactional(readOnly = true)
@@ -115,9 +136,16 @@ public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanServi
 
     @Override
     @Transactional(readOnly = true)
+    public LoanResponse getLoan(Long id, Long customerId) {
+        return mapToResponse(findByIdAndCustomer(id, customerId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public LoanResponse getLoanByReference(String reference) {
         Loan loan = loanRepository.findByLoanReference(reference)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan not found with reference: " + reference));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Loan not found with reference: " + reference));
         return mapToResponse(loan);
     }
 
@@ -125,14 +153,16 @@ public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanServi
     @Transactional(readOnly = true)
     public List<LoanResponse> getCustomerLoans(Long customerId) {
         return loanRepository.findByCustomerId(customerId).stream()
-                .map(this::mapToResponse).collect(Collectors.toList());
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<LoanResponse> getLoans() {
         return loanRepository.findAll().stream()
-                .map(this::mapToResponse).collect(Collectors.toList());
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -142,10 +172,15 @@ public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanServi
         return toResponse(page, this::mapToResponse);
     }
 
+    // =========================================================================
+    // Repayment
+    // =========================================================================
+
     @Override
     @Transactional
     public RepaymentResponse makeRepayment(RepaymentRequest request) {
         Loan loan = findByIdAndCustomer(request.getLoanId(), request.getCustomerId());
+
         if (!loan.isActive()) {
             throw new BusinessException("Cannot make repayment on a " + loan.getStatus() + " loan");
         }
@@ -155,74 +190,49 @@ public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanServi
         if (request.getAmount().compareTo(loan.getOutstandingBalance()) > 0) {
             throw new BusinessException(
                     "Repayment amount cannot exceed the outstanding balance of "
-                            + loan.getOutstandingBalance()
-            );
+                            + loan.getOutstandingBalance());
         }
 
-        BigDecimal paymentAmount = request.getAmount();
-        BigDecimal feesSettled = BigDecimal.ZERO;
-        BigDecimal principalSettled;
-
-        // First settle unpaid fees
+        // --- pure calculation ---
         List<LoanFee> unpaidFees = loanFeeRepository.findByLoanIdAndPaidFalse(loan.getId());
+        List<BigDecimal> unpaidFeeAmounts = unpaidFees.stream()
+                .map(LoanFee::getAmount)
+                .collect(Collectors.toList());
+
+        LoanCalculator.RepaymentAllocation allocation = LoanCalculator.allocateRepayment(
+                request.getAmount(), unpaidFeeAmounts, loan.getOutstandingBalance());
+
+        // --- persistence: apply fee settlements ---
+        BigDecimal remainingFeePayment = allocation.feesSettled();
         for (LoanFee fee : unpaidFees) {
-            if (paymentAmount.compareTo(BigDecimal.ZERO) <= 0) break;
-            if (paymentAmount.compareTo(fee.getAmount()) >= 0) {
-                paymentAmount = paymentAmount.subtract(fee.getAmount());
-                feesSettled = feesSettled.add(fee.getAmount());
+            if (remainingFeePayment.compareTo(BigDecimal.ZERO) <= 0) break;
+            if (remainingFeePayment.compareTo(fee.getAmount()) >= 0) {
+                remainingFeePayment = remainingFeePayment.subtract(fee.getAmount());
                 fee.setPaid(true);
                 fee.setPaidDate(LocalDate.now());
                 loanFeeRepository.save(fee);
             }
         }
 
-        // Then reduce principal
-        principalSettled = paymentAmount.min(loan.getOutstandingBalance());
-        loan.setOutstandingBalance(loan.getOutstandingBalance().subtract(principalSettled));
+        // --- persistence: apply principal settlement ---
+        loan.setOutstandingBalance(allocation.remainingBalance());
+        applyPrincipalToInstallments(loan, allocation.principalSettled());
 
-        // Update installment
-        BigDecimal remaining = principalSettled;
-        List<LoanInstallment> installments = installmentRepository.findByLoanAndStatusOrderByDueDateAsc(loan,LoanStatus.OPEN);
-        for (LoanInstallment installment : installments) {
-            if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
-                break;
-            }
-
-            BigDecimal outstanding = installment.getOutstandingAmount();
-            BigDecimal applied = remaining.min(outstanding);
-
-            installment.setOutstandingAmount(outstanding.subtract(applied));
-
-            if (installment.getOutstandingAmount().compareTo(BigDecimal.ZERO) == 0) {
-                installment.setStatus(LoanStatus.CLOSED);
-                installment.setPaidDate(LocalDate.now());
-            }
-            installmentRepository.save(installment);
-            remaining = remaining.subtract(applied);
+        // --- persistence: close loan if fully paid ---
+        if (allocation.remainingBalance().compareTo(BigDecimal.ZERO) <= 0) {
+            closeLoan(loan);
         }
 
-        // Close loan if fully paid
-        if (loan.getOutstandingBalance().compareTo(BigDecimal.ZERO) <= 0) {
-            loan.setStatus(LoanStatus.CLOSED);
-            loan.setClosedDate(LocalDate.now());
-            // Restore customer limit
-            Customer customer = loan.getCustomer();
-            creditLimitRepository.findByCustomer(customer).ifPresent(limit -> {
-                limit.restoreLimit(loan.getPrincipalAmount());
-                creditLimitRepository.save(limit);
-            });
-            customerRepository.save(customer);
-            notificationService.sendNotification(customer, loan, NotificationEventType.LOAN_CLOSED);
-        }
+        LocalDate paymentDate = request.getPaymentDate() != null
+                ? request.getPaymentDate()
+                : LocalDate.now();
 
-        LocalDate paymentDate = request.getPaymentDate() != null ? request.getPaymentDate() : LocalDate.now();
         Repayment repayment = Repayment.builder()
-                .repaymentReference("RPY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                .repaymentReference(LoanCalculator.generateRepaymentReference())
                 .loan(loan)
-//                .installment(installment)
                 .amount(request.getAmount())
-                .principalPaid(principalSettled)
-                .feesPaid(feesSettled)
+                .principalPaid(allocation.principalSettled())
+                .feesPaid(allocation.feesSettled())
                 .paymentDate(paymentDate)
                 .notes(request.getNotes())
                 .build();
@@ -230,11 +240,17 @@ public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanServi
         Loan savedLoan = loanRepository.save(loan);
         Repayment saved = repaymentRepository.save(repayment);
 
-        notificationService.sendNotification(savedLoan.getCustomer(), savedLoan, NotificationEventType.LOAN_REPAYMENT);
-        log.info("Repayment {} of {} made on loan {}", saved.getRepaymentReference(), request.getAmount(), savedLoan.getLoanReference());
+        notificationService.sendNotification(
+                savedLoan.getCustomer(), savedLoan, NotificationEventType.LOAN_REPAYMENT);
+        log.info("Repayment {} of {} made on loan {}",
+                saved.getRepaymentReference(), request.getAmount(), savedLoan.getLoanReference());
 
         return mapRepaymentToResponse(saved);
     }
+
+    // =========================================================================
+    // Loan state changes
+    // =========================================================================
 
     @Override
     @Transactional
@@ -244,9 +260,8 @@ public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanServi
             throw new BusinessException("Only OPEN loans can be cancelled");
         }
         loan.setStatus(LoanStatus.CANCELLED);
-        // Restore limit
+
         Customer customer = loan.getCustomer();
-        // get credit limit
         creditLimitRepository.findByCustomer(customer).ifPresent(limit -> {
             limit.restoreLimit(loan.getPrincipalAmount());
             creditLimitRepository.save(limit);
@@ -267,9 +282,14 @@ public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanServi
         loan.setStatus(LoanStatus.WRITTEN_OFF);
         loan.setWrittenOffDate(LocalDate.now());
         loanRepository.save(loan);
-        notificationService.sendNotification(loan.getCustomer(), loan, NotificationEventType.LOAN_WRITTEN_OFF);
+        notificationService.sendNotification(
+                loan.getCustomer(), loan, NotificationEventType.LOAN_WRITTEN_OFF);
         return mapToResponse(loan);
     }
+
+    // =========================================================================
+    // Scheduled jobs
+    // =========================================================================
 
     @Override
     @Transactional
@@ -281,16 +301,19 @@ public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanServi
         for (Loan loan : openOverdue) {
             loan.setStatus(LoanStatus.OVERDUE);
 
-            // Apply late fees from the product configuration
+            long daysOverdue = today.toEpochDay() - loan.getDueDate().toEpochDay();
+
+            // --- pure predicate: isLateFeeApplicable ---
             loan.getProduct().getFees().stream()
-                    .filter(f -> f.getFeeType() == FeeType.LATE_FEE && Boolean.TRUE.equals(f.getActive()))
-                    .filter(f -> {
-                        long daysOverdue = today.toEpochDay() - loan.getDueDate().toEpochDay();
-                        return daysOverdue >= f.getDaysAfterDue();
-                    })
-                    .filter(f -> !loanFeeRepository.existsByLoanIdAndFeeTypeAndPaidFalse(loan.getId(), FeeType.LATE_FEE))
+                    .filter(f -> LoanCalculator.isLateFeeApplicable(f, daysOverdue))
+                    .filter(f -> !loanFeeRepository.existsByLoanIdAndFeeTypeAndPaidFalse(
+                            loan.getId(), FeeType.LATE_FEE))
                     .forEach(f -> {
-                        BigDecimal feeAmount = calculateFeeAmount(f, loan.getOutstandingBalance());
+                        // --- pure calculation ---
+                        BigDecimal feeAmount = LoanCalculator.calculateFeeAmount(
+                                f, loan.getOutstandingBalance());
+
+                        // --- persistence ---
                         LoanFee loanFee = LoanFee.builder()
                                 .loan(loan)
                                 .productFee(f)
@@ -301,12 +324,14 @@ public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanServi
                                 .description("Late fee applied")
                                 .build();
                         loanFeeRepository.save(loanFee);
-                        notificationService.sendNotification(loan.getCustomer(), loan, NotificationEventType.LATE_FEE_APPLIED);
+                        notificationService.sendNotification(
+                                loan.getCustomer(), loan, NotificationEventType.LATE_FEE_APPLIED);
                         log.info("Applied late fee {} to loan {}", feeAmount, loan.getLoanReference());
                     });
 
             loanRepository.save(loan);
-            notificationService.sendNotification(loan.getCustomer(), loan, NotificationEventType.LOAN_OVERDUE);
+            notificationService.sendNotification(
+                    loan.getCustomer(), loan, NotificationEventType.LOAN_OVERDUE);
         }
     }
 
@@ -314,15 +339,19 @@ public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanServi
     @Transactional
     public void applyDailyFees() {
         LocalDate today = LocalDate.now();
-        List<Loan> activeLoans = loanRepository.findOpenLoansOverdue(today);
-        // Also get all open loans with daily fee product
         loanRepository.findAll().stream()
-                .filter(l -> l.getStatus() == LoanStatus.OPEN || l.getStatus() == LoanStatus.OVERDUE)
+                .filter(l -> l.getStatus() == LoanStatus.OPEN
+                        || l.getStatus() == LoanStatus.OVERDUE)
                 .forEach(loan -> {
                     loan.getProduct().getFees().stream()
-                            .filter(f -> f.getFeeType() == FeeType.DAILY_FEE && Boolean.TRUE.equals(f.getActive()))
+                            .filter(f -> f.getFeeType() == FeeType.DAILY_FEE
+                                    && Boolean.TRUE.equals(f.getActive()))
                             .forEach(f -> {
-                                BigDecimal dailyFeeAmount = calculateFeeAmount(f, loan.getOutstandingBalance());
+                                // --- pure calculation ---
+                                BigDecimal dailyFeeAmount = LoanCalculator.calculateFeeAmount(
+                                        f, loan.getOutstandingBalance());
+
+                                // --- persistence ---
                                 LoanFee loanFee = LoanFee.builder()
                                         .loan(loan)
                                         .productFee(f)
@@ -333,45 +362,26 @@ public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanServi
                                         .description("Daily fee for " + today)
                                         .build();
                                 loanFeeRepository.save(loanFee);
-                                // Add to outstanding
-                                loan.setOutstandingBalance(loan.getOutstandingBalance().add(dailyFeeAmount));
+                                loan.setOutstandingBalance(
+                                        loan.getOutstandingBalance().add(dailyFeeAmount));
                                 loanRepository.save(loan);
                             });
                 });
     }
 
-    // ---- private helpers ----
+    // =========================================================================
+    // Private persistence helpers (imperative; never compute amounts themselves)
+    // =========================================================================
 
-    private Loan findById(Long id) {
-        return loanRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Loan", id));
-    }
-
-    private Loan findByIdAndCustomer(Long id, Long customerId) {
-        return loanRepository.findByIdAndCustomerId(id, customerId).orElseThrow(() -> new ResourceNotFoundException("Loan", id));
-    }
-
-    private void validateLoanAmount(BigDecimal amount, LoanProduct product) {
-        if (amount.compareTo(product.getMinAmount()) < 0) {
-            throw new BusinessException("Amount is below the product minimum of " + product.getMinAmount());
-        }
-        if (amount.compareTo(product.getMaxAmount()) > 0) {
-            throw new BusinessException("Amount exceeds product maximum of " + product.getMaxAmount());
-        }
-    }
-
-    private LocalDate calculateDueDate(LocalDate from, LoanProduct product) {
-        return switch (product.getTenureType()) {
-            case DAYS -> from.plusDays(product.getTenureValue());
-            case MONTHS -> from.plusMonths(product.getTenureValue());
-        };
-    }
-
-    private void applyServiceFee(Loan loan, LoanProduct product) {
+    /** Persists one {@link LoanFee} row per active service fee on the product. */
+    private void persistServiceFees(Loan loan, LoanProduct product) {
         product.getFees().stream()
-                .filter(f -> f.getFeeType() == FeeType.SERVICE_FEE && Boolean.TRUE.equals(f.getActive()))
+                .filter(f -> f.getFeeType() == FeeType.SERVICE_FEE
+                        && Boolean.TRUE.equals(f.getActive()))
                 .forEach(f -> {
-                    BigDecimal feeAmount = calculateFeeAmount(f, loan.getPrincipalAmount());
-                    LoanFee loanFee = LoanFee.builder()
+                    BigDecimal feeAmount = LoanCalculator.calculateFeeAmount(
+                            f, loan.getPrincipalAmount());
+                    loanFeeRepository.save(LoanFee.builder()
                             .loan(loan)
                             .productFee(f)
                             .feeType(FeeType.SERVICE_FEE)
@@ -379,73 +389,96 @@ public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanServi
                             .appliedDate(loan.getDisbursementDate())
                             .paid(false)
                             .description(f.getDescription() != null ? f.getDescription() : "Service fee")
-                            .build();
-                    loanFeeRepository.save(loanFee);
-                    loan.setOutstandingBalance(loan.getOutstandingBalance().add(feeAmount));
+                            .build());
                 });
     }
 
-    private void applyInterestFee(Loan loan, LoanProduct product) {
-        BigDecimal rate = product.getInterestRate()
-                .divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP);
+    /** Persists the flat interest {@link LoanFee} row. */
+    private void persistInterestFee(Loan loan, LoanProduct product) {
+        BigDecimal interestAmount = LoanCalculator.calculateInterestAmount(
+                loan.getPrincipalAmount(), product);
 
-        int months = product.getTenureType() == TenureType.MONTHS
-                ? product.getTenureValue()
-                : product.getTenureValue() / 30;
-
-        BigDecimal interestAmount = loan.getPrincipalAmount()
-                .multiply(rate)
-                .multiply(BigDecimal.valueOf(months / 12.0))
-                .setScale(4, RoundingMode.HALF_UP);
-
-        LoanFee interestFee = LoanFee.builder()
+        loanFeeRepository.save(LoanFee.builder()
                 .loan(loan)
                 .feeType(FeeType.INTEREST_FEE)
                 .amount(interestAmount)
                 .appliedDate(loan.getDisbursementDate())
                 .paid(false)
                 .description("Flat interest charge")
-                .build();
-
-        loanFeeRepository.save(interestFee);
-
-        // IMPORTANT: include in outstanding balance
-        loan.setOutstandingBalance(loan.getOutstandingBalance().add(interestAmount));
+                .build());
     }
 
-    private BigDecimal calculateFeeAmount(ProductFee fee, BigDecimal principal) {
-        if (fee.getCalculationMethod() == FeeCalculationMethod.FIXED) {
-            return fee.getAmount();
-        } else {
-            return principal.multiply(fee.getAmount()).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
-        }
-    }
+    /** Converts a {@link LoanCalculator} schedule into persisted installment rows. */
+    private void persistInstallments(Loan loan, LoanProduct product) {
+        List<LoanCalculator.InstallmentScheduleEntry> schedule = LoanCalculator.generateInstallmentSchedule(loan.getDisbursementDate(), loan.getOutstandingBalance(), product);
 
-    private void generateInstallments(Loan loan, LoanProduct product) {
-        int count = product.getInstallmentCount();
-        BigDecimal installmentAmount = loan.getOutstandingBalance().divide(BigDecimal.valueOf(count), 4, RoundingMode.HALF_UP);
-
-        for (int i = 1; i <= count; i++) {
-            LocalDate installmentDue = switch (product.getTenureType()) {
-                case MONTHS -> loan.getDisbursementDate().plusMonths(i);
-                case DAYS -> loan.getDisbursementDate().plusDays((long) loan.getProduct().getTenureValue() / count * i);
-            };
-
+        for (LoanCalculator.InstallmentScheduleEntry entry : schedule) {
             LoanInstallment installment = LoanInstallment.builder()
                     .loan(loan)
-                    .installmentNumber(i)
-                    .principalAmount(installmentAmount)
-                    .outstandingAmount(installmentAmount)
-                    .dueDate(installmentDue)
+                    .installmentNumber(entry.installmentNumber())
+                    .principalAmount(entry.principalAmount())
+                    .outstandingAmount(entry.principalAmount())
+                    .dueDate(entry.dueDate())
                     .status(LoanStatus.OPEN)
                     .build();
             loan.getInstallments().add(installment);
         }
     }
 
-    private String generateReference() {
-        return "LN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    /** Walks open installments and deducts the settled principal from each in order. */
+    private void applyPrincipalToInstallments(Loan loan, BigDecimal principalSettled) {
+        BigDecimal remaining = principalSettled;
+        List<LoanInstallment> installments = installmentRepository
+                .findByLoanAndStatusOrderByDueDateAsc(loan, LoanStatus.OPEN);
+
+        for (LoanInstallment installment : installments) {
+            if (remaining.compareTo(BigDecimal.ZERO) <= 0) break;
+
+            BigDecimal outstanding = installment.getOutstandingAmount();
+            BigDecimal applied = remaining.min(outstanding);
+
+            installment.setOutstandingAmount(outstanding.subtract(applied));
+
+            if (installment.getOutstandingAmount().compareTo(BigDecimal.ZERO) == 0) {
+                installment.setStatus(LoanStatus.CLOSED);
+                installment.setPaidDate(LocalDate.now());
+            }
+            installmentRepository.save(installment);
+            remaining = remaining.subtract(applied);
+        }
     }
+
+    /** Marks the loan CLOSED and restores the customer's credit limit. */
+    private void closeLoan(Loan loan) {
+        loan.setStatus(LoanStatus.CLOSED);
+        loan.setClosedDate(LocalDate.now());
+
+        Customer customer = loan.getCustomer();
+        creditLimitRepository.findByCustomer(customer).ifPresent(limit -> {
+            limit.restoreLimit(loan.getPrincipalAmount());
+            creditLimitRepository.save(limit);
+        });
+        customerRepository.save(customer);
+        notificationService.sendNotification(customer, loan, NotificationEventType.LOAN_CLOSED);
+    }
+
+    // =========================================================================
+    // Finders
+    // =========================================================================
+
+    private Loan findById(Long id) {
+        return loanRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Loan", id));
+    }
+
+    private Loan findByIdAndCustomer(Long loanId, Long customerId) {
+        return loanRepository.findByIdAndCustomerId(loanId, customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Loan", loanId));
+    }
+
+    // =========================================================================
+    // Mapping
+    // =========================================================================
 
     public LoanResponse mapToResponse(Loan loan) {
         List<InstallmentResponse> installmentResponses = loan.getInstallments().stream()

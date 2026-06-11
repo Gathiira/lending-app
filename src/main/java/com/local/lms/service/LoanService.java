@@ -15,6 +15,7 @@ public interface LoanService {
     LoanResponse createLoan(CreateLoanRequest request);
     LoanResponse applyLoan(ApplyLoanRequest request);
     LoanResponse getLoan(Long id);
+    LoanResponse getLoan(Long id, Long customerId);
     LoanResponse getLoanByReference(String reference);
     List<LoanResponse> getCustomerLoans(Long customerId);
     List<LoanResponse> getLoans();
