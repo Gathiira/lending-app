@@ -73,8 +73,14 @@ public class CustomerProfileController extends BaseController {
 
     @GetMapping("/loans/{id}")
     @Operation(summary = "Get loan for a customer using loan id")
-    public ResponseResult<LoanResponse> getCustomerLoans(@PathVariable Long id) {
+    public ResponseResult<LoanResponse> getCustomerLoan(@PathVariable Long id) {
         return ResponseResult.success(loanService.getLoan(id, getCustomerId()));
+    }
+
+    @GetMapping("/loans/{id}/repayments")
+    @Operation(summary = "Get loan repayments for a customer using loan id")
+    public ResponseResult<List<RepaymentResponse>> getCustomerLoanRepayments(@PathVariable Long id) {
+        return ResponseResult.success(loanService.getLoanRepayments(id, getCustomerId()));
     }
 
     @PostMapping("/repayments")

@@ -324,7 +324,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{   \"loanId\":\"1\",\n    \"amount\":5000\n}",
+							"raw": "{   \"loanId\":\"2\",\n    \"amount\":5000\n}",
 							"options": {
 								"raw": {
 									"language": "json"

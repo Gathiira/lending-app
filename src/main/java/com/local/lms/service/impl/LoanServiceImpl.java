@@ -255,6 +255,10 @@ public class LoanServiceImpl extends BaseServiceImpl<Loan> implements LoanServic
         }, 5_000L);
     }
 
+    public List<RepaymentResponse> getLoanRepayments(Long id, Long customerId){
+        return repaymentRepository.findByLoanIdAndCustomerId(id, customerId).stream().map(this::mapRepaymentToResponse).toList();
+    }
+
     // =========================================================================
     // Loan state changes
     // =========================================================================

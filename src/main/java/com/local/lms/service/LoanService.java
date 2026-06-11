@@ -21,6 +21,7 @@ public interface LoanService {
     List<LoanResponse> getLoans();
     PaginatedResponse<LoanResponse> getPage(LoanSearchRequest request, Pageable pageable);
     RepaymentResponse makeRepayment(RepaymentRequest request);
+    List<RepaymentResponse> getLoanRepayments(Long id, Long customerId);
     LoanResponse cancelLoan(Long id);
     LoanResponse writeOffLoan(Long id);
 

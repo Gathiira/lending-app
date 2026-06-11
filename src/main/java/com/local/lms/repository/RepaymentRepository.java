@@ -12,4 +12,7 @@ public interface RepaymentRepository extends JpaRepository<Repayment, Long> {
 
     @Query("SELECT r FROM Repayment r WHERE r.loan.customer.id = :customerId ORDER BY r.paymentDate DESC")
     List<Repayment> findByCustomerId(Long customerId);
+
+    @Query("SELECT r FROM Repayment r WHERE r.loan.id = :loanId AND r.loan.customer.id = :customerId ORDER BY r.paymentDate DESC")
+    List<Repayment> findByLoanIdAndCustomerId(Long loanId, Long customerId);
 }
