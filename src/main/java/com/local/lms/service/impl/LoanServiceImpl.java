@@ -410,24 +410,20 @@ public class LoanServiceImpl  extends BaseServiceImpl<Loan> implements LoanServi
         loanFeeRepository.save(interestFee);
 
         // IMPORTANT: include in outstanding balance
-        loan.setOutstandingBalance(
-                loan.getOutstandingBalance().add(interestAmount)
-        );
+        loan.setOutstandingBalance(loan.getOutstandingBalance().add(interestAmount));
     }
 
     private BigDecimal calculateFeeAmount(ProductFee fee, BigDecimal principal) {
         if (fee.getCalculationMethod() == FeeCalculationMethod.FIXED) {
             return fee.getAmount();
         } else {
-            return principal.multiply(fee.getAmount())
-                    .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+            return principal.multiply(fee.getAmount()).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
         }
     }
 
     private void generateInstallments(Loan loan, LoanProduct product) {
         int count = product.getInstallmentCount();
-        BigDecimal installmentAmount = loan.getPrincipalAmount()
-                .divide(BigDecimal.valueOf(count), 4, RoundingMode.HALF_UP);
+        BigDecimal installmentAmount = loan.getOutstandingBalance().divide(BigDecimal.valueOf(count), 4, RoundingMode.HALF_UP);
 
         for (int i = 1; i <= count; i++) {
             LocalDate installmentDue = switch (product.getTenureType()) {

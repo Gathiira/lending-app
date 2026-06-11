@@ -30,7 +30,7 @@ public class BaseController {
     }
 
     protected Pageable getPageable() {
-        int page = Math.max(getPageNo(), 1) - 1;
+        int page = Math.max(getPageNo(), 1) - 1; // zero based page
         int size = Math.min(Math.max(getPageSize(), 1), 20);
         return PageRequest.of(page,size);
     }
