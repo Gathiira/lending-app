@@ -1,6 +1,7 @@
 package com.local.lms.controller;
 
 import com.local.lms.dto.request.ApproveCustomerLimitRequest;
+import com.local.lms.dto.request.CreditLimitAdjustmentRequest;
 import com.local.lms.dto.request.CreditSearchRequest;
 import com.local.lms.dto.response.*;
 import com.local.lms.service.CreditService;
@@ -37,6 +38,13 @@ public class CreditController extends  BaseController {
     public ResponseResult<CreditLimitRequestResponse> updateCreditLimit(
             @PathVariable Long id,
             @Validated @RequestBody ApproveCustomerLimitRequest request) {
-        return ResponseResult.success("Loan limit updated", creditService.updateCreditLimit(id, request));
+        return ResponseResult.success("Credit limit updated", creditService.updateCreditLimit(id, request));
+    }
+
+    @PutMapping("/customer/{customerId}/credit-limit/adjust")
+    public ResponseResult<CreditLimitResponse> adjustCreditLimit(
+            @PathVariable Long customerId,
+            @Validated @RequestBody CreditLimitAdjustmentRequest request) {
+        return ResponseResult.success("Credit limit adjusted", creditService.adjustCreditLimit(customerId, request));
     }
 }

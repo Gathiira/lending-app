@@ -1,12 +1,11 @@
 package com.local.lms.service.impl;
 
-import com.local.lms.domain.entity.CreditLimit;
-import com.local.lms.domain.entity.CreditLimitRequest;
-import com.local.lms.domain.entity.Customer;
-import com.local.lms.domain.entity.LoanProduct;
+import com.local.lms.domain.entity.*;
+import com.local.lms.domain.enums.AdjustmentType;
 import com.local.lms.domain.enums.ApprovalStatus;
 import com.local.lms.domain.enums.CreditLimitStatus;
 import com.local.lms.dto.request.ApproveCustomerLimitRequest;
+import com.local.lms.dto.request.CreditLimitAdjustmentRequest;
 import com.local.lms.dto.request.CreditSearchRequest;
 import com.local.lms.dto.request.CustomerLimitRequest;
 import com.local.lms.dto.response.CreditLimitRequestResponse;
@@ -15,6 +14,7 @@ import com.local.lms.dto.response.PaginatedResponse;
 import com.local.lms.exceptions.BusinessException;
 import com.local.lms.exceptions.ExceptionAssert;
 import com.local.lms.exceptions.ResourceNotFoundException;
+import com.local.lms.repository.CreditLimitAdjustmentRepository;
 import com.local.lms.repository.CreditLimitRepository;
 import com.local.lms.repository.CreditLimitRequestRepository;
 import com.local.lms.repository.LoanProductRepository;
@@ -44,6 +44,7 @@ public class CreditServiceImpl extends BaseServiceImpl<CreditLimitRequest> imple
     private final CreditLimitRepository creditLimitRepository;
     private final JwtContext authContext;
     private final ProductServiceImpl productService;
+    private final CreditLimitAdjustmentRepository creditLimitAdjustmentRepository;
 
     @Override
     public List<CreditLimitRequestResponse> getLimitRequests() {
@@ -124,6 +125,54 @@ public class CreditServiceImpl extends BaseServiceImpl<CreditLimitRequest> imple
             creditLimitRepository.save(creditLimit);
         }
         return mapToLimitRequestResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public CreditLimitResponse adjustCreditLimit(Long customerId, CreditLimitAdjustmentRequest request) {
+        CreditLimit creditLimit = creditLimitRepository.findByCustomerId(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("CreditLimit", customerId));
+
+        if (!creditLimit.getStatus().equals(CreditLimitStatus.ACTIVE)) {
+            ExceptionAssert.throwException("Cannot adjust a credit limit that is not ACTIVE");
+        }
+
+        BigDecimal amount = request.getAmount();
+
+        if (request.getType() == AdjustmentType.INCREASE) {
+            creditLimit.setCurrentLimit(creditLimit.getCurrentLimit().add(amount));
+            creditLimit.setAvailableLimit(creditLimit.getAvailableLimit().add(amount));
+
+        } else if (request.getType() == AdjustmentType.DECREASE) {
+            BigDecimal newCurrent = creditLimit.getCurrentLimit().subtract(amount);
+            BigDecimal newAvailable = creditLimit.getAvailableLimit().subtract(amount);
+
+            if (newCurrent.compareTo(BigDecimal.ZERO) < 0) {
+                ExceptionAssert.throwException("Decrease amount exceeds current limit");
+            }
+            if (newAvailable.compareTo(BigDecimal.ZERO) < 0) {
+                ExceptionAssert.throwException("Decrease amount exceeds available limit, customer has outstanding utilization");
+            }
+
+            creditLimit.setCurrentLimit(newCurrent);
+            creditLimit.setAvailableLimit(newAvailable);
+        }
+
+        CreditLimit saved = creditLimitRepository.save(creditLimit);
+
+        // persist adjustment record
+        CreditLimitAdjustment adjustment = CreditLimitAdjustment.builder()
+                .creditLimit(saved)
+                .amount(amount)
+                .type(request.getType())
+                .reason(request.getReason())
+                .build();
+        creditLimitAdjustmentRepository.save(adjustment);
+
+        log.info("Credit limit adjusted [customerId={}, type={}, amount={}, adjustedBy={}]",
+                customerId, request.getType(), amount, authContext.getCurrentUser());
+
+        return mapToLimitResponse(saved);
     }
 
     // ---- helpers ----

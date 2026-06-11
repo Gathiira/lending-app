@@ -1,6 +1,7 @@
 package com.local.lms.service;
 
 import com.local.lms.dto.request.ApproveCustomerLimitRequest;
+import com.local.lms.dto.request.CreditLimitAdjustmentRequest;
 import com.local.lms.dto.request.CreditSearchRequest;
 import com.local.lms.dto.request.CustomerLimitRequest;
 import com.local.lms.dto.response.CreditLimitRequestResponse;
@@ -18,4 +19,5 @@ public interface CreditService {
     CreditLimitResponse getCustomerCreditLimit(Long customerId);
     CreditLimitRequestResponse applyLimit(Long id, CustomerLimitRequest request);
     CreditLimitRequestResponse updateCreditLimit(Long id, ApproveCustomerLimitRequest request);
+    CreditLimitResponse adjustCreditLimit(Long customerId, CreditLimitAdjustmentRequest request);
 }
