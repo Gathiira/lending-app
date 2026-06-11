@@ -43,8 +43,7 @@ public class NotificationController extends  BaseController {
 
     @PostMapping("/reminders/trigger")
     @Operation(summary = "Manually trigger due date reminders")
-    public ResponseResult<Void> triggerReminders(
-            @RequestParam(defaultValue = "3") int daysAhead) {
+    public ResponseResult<Void> triggerReminders(@RequestParam(defaultValue = "3") int daysAhead) {
         notificationService.sendDueDateReminders(daysAhead);
         return ResponseResult.success("Reminders sent");
     }

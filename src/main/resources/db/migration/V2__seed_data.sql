@@ -8,25 +8,25 @@
 -- =========================================================
 INSERT INTO notification_templates (event, channel, subject, body) VALUES
                                                                        ('LOAN_CREATED',    'EMAIL', 'Your Loan Application - {{loanReference}}',
-                                                                        'Dear {{customerName}},\n\nYour loan application {{loanReference}} for KES {{amount}} has been successfully created.\n\nDue Date: {{dueDate}}\n\nThank you for choosing us.\n\nBest regards,\nLending Team'),
+                                                                        'Dear {{customerName}},\n\nYour loan application {{loanReference}} for KES {{amount}} has been successfully created.\n\nDue Date: {{dueDate}}\n\nThank you for choosing us.\n\nBest regards,\Lms Team'),
 
                                                                        ('LOAN_DISBURSED',  'EMAIL', 'Loan Disbursed - {{loanReference}}',
-                                                                        'Dear {{customerName}},\n\nYour loan {{loanReference}} of KES {{amount}} has been disbursed to your account.\n\nPlease ensure repayment by {{dueDate}}.\n\nBest regards,\nLending Team'),
+                                                                        'Dear {{customerName}},\n\nYour loan {{loanReference}} of KES {{amount}} has been disbursed to your account.\n\nPlease ensure repayment by {{dueDate}}.\n\nBest regards,\Lms Team'),
 
                                                                        ('LOAN_REPAYMENT',  'EMAIL', 'Repayment Received - {{loanReference}}',
-                                                                        'Dear {{customerName}},\n\nWe have received your repayment of KES {{amount}} for loan {{loanReference}}.\n\nRemaining Balance: KES {{outstandingBalance}}\n\nThank you!\n\nBest regards,\nLending Team'),
+                                                                        'Dear {{customerName}},\n\nWe have received your repayment of KES {{amount}} for loan {{loanReference}}.\n\nRemaining Balance: KES {{outstandingBalance}}\n\nThank you!\n\nBest regards,\Lms Team'),
 
                                                                        ('LOAN_OVERDUE',    'EMAIL', 'URGENT: Overdue Loan - {{loanReference}}',
-                                                                        'Dear {{customerName}},\n\nYour loan {{loanReference}} is overdue. Outstanding balance: KES {{outstandingBalance}}.\n\nPlease make payment immediately to avoid further fees.\n\nBest regards,\nLending Team'),
+                                                                        'Dear {{customerName}},\n\nYour loan {{loanReference}} is overdue. Outstanding balance: KES {{outstandingBalance}}.\n\nPlease make payment immediately to avoid further fees.\n\nBest regards,\Lms Team'),
 
                                                                        ('DUE_DATE_REMINDER','EMAIL', 'Payment Reminder - {{loanReference}}',
-                                                                        'Dear {{customerName}},\n\nThis is a reminder that your loan {{loanReference}} payment of KES {{outstandingBalance}} is due on {{dueDate}}.\n\nBest regards,\nLending Team'),
+                                                                        'Dear {{customerName}},\n\nThis is a reminder that your loan {{loanReference}} payment of KES {{outstandingBalance}} is due on {{dueDate}}.Please make pay on time to improve your credit score.\n\nBest regards,\Lms Team'),
 
                                                                        ('LOAN_CLOSED',     'EMAIL', 'Loan Closed - {{loanReference}}',
-                                                                        'Dear {{customerName}},\n\nCongratulations! Your loan {{loanReference}} has been fully repaid and closed.\n\nThank you for your prompt payments!\n\nBest regards,\nLending Team'),
+                                                                        'Dear {{customerName}},\n\nCongratulations! Your loan {{loanReference}} has been fully repaid and closed.\n\nThank you for your prompt payments!\n\nBest regards,\Lms Team'),
 
                                                                        ('LATE_FEE_APPLIED','EMAIL', 'Late Fee Applied - {{loanReference}}',
-                                                                        'Dear {{customerName}},\n\nA late fee of KES {{amount}} has been applied to your loan {{loanReference}}.\n\nPlease make payment as soon as possible.\n\nBest regards,\nLending Team'),
+                                                                        'Dear {{customerName}},\n\nA late fee of KES {{amount}} has been applied to your loan {{loanReference}}.\n\nPlease make payment as soon as possible to improve your credit score.\n\nBest regards,\Lms Team'),
 
 -- SMS templates
                                                                        ('LOAN_CREATED',    'SMS', NULL,
@@ -42,10 +42,10 @@ INSERT INTO notification_templates (event, channel, subject, body) VALUES
                                                                         'URGENT: Loan {{loanReference}} is overdue. Balance: KES {{outstandingBalance}}. Pay now to avoid fees.'),
 
                                                                        ('DUE_DATE_REMINDER','SMS', NULL,
-                                                                        'Reminder: Loan {{loanReference}} payment of KES {{outstandingBalance}} due on {{dueDate}}.'),
+                                                                        'Reminder: Loan {{loanReference}} payment of KES {{outstandingBalance}} due on {{dueDate}}. Pay on time to improve your credit score'),
 
                                                                        ('LATE_FEE_APPLIED','SMS', NULL,
-                                                                        'Late fee KES {{amount}} added to loan {{loanReference}}. Total balance: KES {{outstandingBalance}}.');
+                                                                        'Late fee KES {{amount}} added to loan {{loanReference}}. Total balance: KES {{outstandingBalance}}.Pay on time to improve your credit score');
 
 -- =========================================================
 -- LOAN PRODUCTS

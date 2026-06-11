@@ -13,10 +13,7 @@ import com.local.lms.repository.NotificationTemplateRepository;
 import com.local.lms.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -33,16 +30,6 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationTemplateRepository templateRepository;
     private final NotificationRepository notificationRepository;
     private final LoanRepository loanRepository;
-
-    @Value("${notification.mock.enabled:true}")
-    private boolean mockEnabled;
-
-    @Value("${notification.email.enabled:false}")
-    private boolean emailEnabled;
-
-    @Value("${notification.email.from:noreply@lending.com}")
-    private String emailFrom;
-
 
     @Override
     @Transactional
@@ -69,14 +56,8 @@ public class NotificationServiceImpl implements NotificationService {
                             .build();
 
                     try {
-                        if (mockEnabled) {
-                            log.info("[MOCK NOTIFICATION] To: {} | Channel: {} | Event: {} | Message: {}",
-                                    recipient, channel, event, message.replace("\n", " "));
-                        } else if (emailEnabled && channel == NotificationChannel.EMAIL) {
-                            sendEmail(recipient, subject, message);
-                        } else {
-                            log.info("[NOTIFICATION] Channel {} not configured. Would send to {}", channel, recipient);
-                        }
+                        // switch different channels and using the respective impl
+                        log.info("[NOTIFICATION] Channel {} not configured. Would send to {} the message: {}", channel, recipient, message);
                         notifLog.setStatus(NotificationStatus.SENT);
                         notifLog.setSentAt(LocalDateTime.now());
                     } catch (Exception e) {
@@ -144,15 +125,6 @@ public class NotificationServiceImpl implements NotificationService {
             result = result.replace(entry.getKey(), entry.getValue());
         }
         return result;
-    }
-
-    private void sendEmail(String to, String subject, String body) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(emailFrom);
-        message.setTo(to);
-        message.setSubject(subject != null ? subject : "Lms Notification");
-        message.setText(body);
-        System.out.println(message);
     }
 
     private NotificationTemplateResponse mapToResponse(NotificationTemplate t) {
