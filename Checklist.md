@@ -113,6 +113,9 @@
 * [x] Proper status codes
 * [x] Validation (@Validation)
 * [x] Global exception handler
+* [x] API versioning (e.g., /api/v1/loans)
+* [ ] Idempotent endpoints for updates (PUT vs PATCH)
+* [ ] introduce ReentrantLock for concurrency control
 
 ### API Docs
 
