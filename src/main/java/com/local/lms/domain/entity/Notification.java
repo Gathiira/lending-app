@@ -26,11 +26,11 @@ public class Notification extends BaseEntity{
     private Loan loan;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "notification_event_type")
+    @Column(nullable = false)
     private NotificationEventType event;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "notification_channel")
+    @Column(nullable = false)
     private NotificationChannel channel;
 
     @Column(nullable = false)
@@ -43,7 +43,7 @@ public class Notification extends BaseEntity{
     private String message;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "notification_status")
+    @Column(nullable = false)
     private NotificationStatus status = NotificationStatus.PENDING;
 
     @Column(name = "error_message", columnDefinition = "TEXT")

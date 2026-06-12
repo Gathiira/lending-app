@@ -43,7 +43,7 @@ public class CreditLimit extends BaseEntity {
     private BigDecimal availableLimit =  BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "status")
+    @Column(nullable = false)
     private CreditLimitStatus status = CreditLimitStatus.ACTIVE;
 
 

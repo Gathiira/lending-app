@@ -36,7 +36,7 @@ public class LoanInstallment extends BaseEntity{
     private LocalDate paidDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, columnDefinition = "loan_status")
+    @Column(name = "status", nullable = false)
     private LoanStatus status = LoanStatus.OPEN;
 
 }

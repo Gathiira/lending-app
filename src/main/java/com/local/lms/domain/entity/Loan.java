@@ -39,15 +39,15 @@ public class Loan extends BaseEntity {
     private BigDecimal outstandingBalance;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "loan_type", nullable = false, columnDefinition = "loan_type")
+    @Column(name = "loan_type", nullable = false)
     private LoanType loanType;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, columnDefinition = "loan_status")
+    @Column(name = "status", nullable = false)
     private LoanStatus status = LoanStatus.OPEN;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "billing_cycle_type", nullable = false, columnDefinition = "billing_cycle_type")
+    @Column(name = "billing_cycle_type", nullable = false)
     private BillingCycleType billingCycleType = BillingCycleType.INDIVIDUAL;
 
     @Column(name = "disbursement_date", nullable = false)

@@ -29,11 +29,11 @@ public class UserAccount extends BaseEntity implements UserDetails {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "user_role")
+    @Column(nullable = false)
     private UserRole role;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "account_status")
+    @Column(nullable = false)
     private AccountStatus status = AccountStatus.ACTIVE;
 
     /** Null for STAFF and ADMIN accounts */

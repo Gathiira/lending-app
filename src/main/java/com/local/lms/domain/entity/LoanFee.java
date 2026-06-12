@@ -26,7 +26,7 @@ public class LoanFee extends BaseEntity{
     private ProductFee productFee;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "fee_type", nullable = false, columnDefinition = "fee_type")
+    @Column(name = "fee_type", nullable = false)
     private FeeType feeType;
 
     @Column(name = "amount")

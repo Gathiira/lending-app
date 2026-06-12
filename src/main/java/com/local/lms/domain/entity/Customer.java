@@ -42,7 +42,7 @@ public class Customer extends BaseEntity {
     private BigDecimal currentLoanLimit = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "preferred_channel", nullable = false, columnDefinition = "notification_channel")
+    @Column(name = "preferred_channel", nullable = false)
     private NotificationChannel preferredChannel = NotificationChannel.EMAIL;
 
     @Column(nullable = false)

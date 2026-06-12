@@ -39,18 +39,18 @@ public class LoanProduct extends BaseEntity{
     private Integer tenureValue;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tenure_type", nullable = false, columnDefinition = "tenure_type")
+    @Column(name = "tenure_type", nullable = false)
     private TenureType tenureType;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "loan_type", nullable = false, columnDefinition = "loan_type")
+    @Column(name = "loan_type", nullable = false)
     private LoanType loanType = LoanType.LUMP_SUM;
 
     @Column(name = "installment_count")
     private Integer installmentCount;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "billing_cycle_type", nullable = false, columnDefinition = "billing_cycle_type")
+    @Column(name = "billing_cycle_type", nullable = false)
     private BillingCycleType billingCycleType = BillingCycleType.INDIVIDUAL;
 
     @Column(name = "grace_period_days", nullable = false)

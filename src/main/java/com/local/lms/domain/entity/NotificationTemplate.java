@@ -16,11 +16,11 @@ public class NotificationTemplate extends BaseEntity{
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "notification_event_type")
+    @Column(nullable = false)
     private NotificationEventType event;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "notification_channel")
+    @Column(nullable = false)
     private NotificationChannel channel;
 
     @Column(columnDefinition = "TEXT")

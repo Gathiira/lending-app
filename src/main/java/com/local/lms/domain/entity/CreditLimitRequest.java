@@ -30,7 +30,7 @@ public class CreditLimitRequest extends BaseEntity {
     private String fileUrl;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "approval_status")
+    @Column(nullable = false)
     private ApprovalStatus status = ApprovalStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)
