@@ -44,10 +44,12 @@ public class Loan extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
+    @Builder.Default
     private LoanStatus status = LoanStatus.OPEN;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "billing_cycle_type", nullable = false)
+    @Builder.Default
     private BillingCycleType billingCycleType = BillingCycleType.INDIVIDUAL;
 
     @Column(name = "disbursement_date", nullable = false)

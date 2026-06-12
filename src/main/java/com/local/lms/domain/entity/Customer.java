@@ -33,22 +33,28 @@ public class Customer extends BaseEntity {
     private String nationalId;
 
     @Column(name = "credit_score")
+    @Builder.Default
     private Integer creditScore = 0;
 
     @Column(name = "max_loan_limit", nullable = false, precision = 19, scale = 4)
+    @Builder.Default
     private BigDecimal maxLoanLimit = BigDecimal.ZERO;
 
     @Column(name = "current_loan_limit", nullable = false, precision = 19, scale = 4)
+    @Builder.Default
     private BigDecimal currentLoanLimit = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "preferred_channel", nullable = false)
+    @Builder.Default
     private NotificationChannel preferredChannel = NotificationChannel.EMAIL;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean active = true;
 
     @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
+    @Builder.Default
     private List<Loan> loans = new ArrayList<>();
 
     public String getFullName() {

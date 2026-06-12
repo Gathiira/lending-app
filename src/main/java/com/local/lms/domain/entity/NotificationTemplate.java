@@ -30,6 +30,7 @@ public class NotificationTemplate extends BaseEntity{
     private String body;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean active = true;
 
 }

@@ -31,9 +31,11 @@ public class Repayment extends BaseEntity{
     private BigDecimal amount;
 
     @Column(name = "principal_paid", nullable = false)
+    @Builder.Default
     private BigDecimal principalPaid = BigDecimal.ZERO;
 
     @Column(name = "fees_paid", nullable = false)
+    @Builder.Default
     private BigDecimal feesPaid = BigDecimal.ZERO;
 
     @Column(name = "payment_date", nullable = false)

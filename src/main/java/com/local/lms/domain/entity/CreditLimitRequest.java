@@ -31,6 +31,7 @@ public class CreditLimitRequest extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private ApprovalStatus status = ApprovalStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)

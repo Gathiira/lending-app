@@ -25,6 +25,7 @@ public class LoanApproval extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private ApprovalStatus status = ApprovalStatus.PENDING;
 
     @Column(columnDefinition = "TEXT")

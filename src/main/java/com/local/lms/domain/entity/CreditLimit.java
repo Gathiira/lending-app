@@ -34,16 +34,20 @@ public class CreditLimit extends BaseEntity {
     private LoanProduct loanProduct;
 
     @Column(name = "credit_limit", nullable = false, precision = 16, scale = 2)
+    @Builder.Default
     private BigDecimal currentLimit = BigDecimal.ZERO;
 
     @Column(name = "frozen_limit", nullable = false, precision = 16, scale = 2)
+    @Builder.Default
     private BigDecimal frozenLimit = BigDecimal.ZERO;
 
     @Column(name = "available_limit", nullable = false, precision = 16, scale = 2)
+    @Builder.Default
     private BigDecimal availableLimit =  BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private CreditLimitStatus status = CreditLimitStatus.ACTIVE;
 
 

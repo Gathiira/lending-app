@@ -37,6 +37,7 @@ public class LoanInstallment extends BaseEntity{
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
+    @Builder.Default
     private LoanStatus status = LoanStatus.OPEN;
 
 }

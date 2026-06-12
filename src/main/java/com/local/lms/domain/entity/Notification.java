@@ -44,6 +44,7 @@ public class Notification extends BaseEntity{
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private NotificationStatus status = NotificationStatus.PENDING;
 
     @Column(name = "error_message", columnDefinition = "TEXT")

@@ -34,12 +34,14 @@ public class ProductFee extends BaseEntity{
 
     /** Number of days after due date before this fee is triggered (for LATE_FEE) */
     @Column(name = "days_after_due", nullable = false)
+    @Builder.Default
     private Integer daysAfterDue = 0;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean active = true;
 
 }

@@ -34,6 +34,7 @@ public class UserAccount extends BaseEntity implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private AccountStatus status = AccountStatus.ACTIVE;
 
     /** Null for STAFF and ADMIN accounts */

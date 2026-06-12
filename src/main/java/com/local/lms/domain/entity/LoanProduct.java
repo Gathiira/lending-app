@@ -44,6 +44,7 @@ public class LoanProduct extends BaseEntity{
 
     @Enumerated(EnumType.STRING)
     @Column(name = "loan_type", nullable = false)
+    @Builder.Default
     private LoanType loanType = LoanType.LUMP_SUM;
 
     @Column(name = "installment_count")
@@ -51,12 +52,15 @@ public class LoanProduct extends BaseEntity{
 
     @Enumerated(EnumType.STRING)
     @Column(name = "billing_cycle_type", nullable = false)
+    @Builder.Default
     private BillingCycleType billingCycleType = BillingCycleType.INDIVIDUAL;
 
     @Column(name = "grace_period_days", nullable = false)
+    @Builder.Default
     private Integer gracePeriodDays = 0;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean active = true;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)

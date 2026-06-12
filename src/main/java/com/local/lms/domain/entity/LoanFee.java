@@ -36,6 +36,7 @@ public class LoanFee extends BaseEntity{
     private LocalDate appliedDate;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean paid = false;
 
     @Column(name = "paid_date")
