@@ -2,11 +2,6 @@
 -- V3__security_and_audit.sql
 -- User accounts, roles, and audit columns
 -- =========================================================
-
--- ENUMS
-CREATE TYPE user_role AS ENUM ('CUSTOMER', 'STAFF', 'ADMIN');
-CREATE TYPE account_status AS ENUM ('ACTIVE', 'INACTIVE', 'LOCKED', 'PENDING_VERIFICATION');
-
 -- =========================================================
 -- USER ACCOUNTS
 -- Unified auth table; staff rows have no customer_id,
@@ -16,8 +11,8 @@ CREATE TABLE user_accounts (
                                id                  BIGSERIAL PRIMARY KEY,
                                username            VARCHAR(100) NOT NULL UNIQUE,
                                password       VARCHAR(255) NOT NULL,
-                               role                user_role NOT NULL DEFAULT 'CUSTOMER',
-                               status              account_status NOT NULL DEFAULT 'ACTIVE',
+                               role                VARCHAR(100) NOT NULL DEFAULT 'CUSTOMER',
+                               status              VARCHAR(100) NOT NULL DEFAULT 'ACTIVE',
                                customer_id         BIGINT REFERENCES customers(id),   -- NULL for STAFF / ADMIN
                                last_login_at       TIMESTAMP,
                                password_reset_token VARCHAR(255),
@@ -36,13 +31,12 @@ CREATE INDEX idx_user_accounts_customer_id ON user_accounts(customer_id);
 -- Staff must approve customer loan applications
 -- before disbursement.
 -- =========================================================
-CREATE TYPE approval_status AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
 
 CREATE TABLE loan_approvals (
                                 id              BIGSERIAL PRIMARY KEY,
                                 loan_id         BIGINT NOT NULL REFERENCES loans(id),
                                 reviewed_by     BIGINT REFERENCES user_accounts(id),
-                                status          approval_status NOT NULL DEFAULT 'PENDING',
+                                status          VARCHAR(100) NOT NULL DEFAULT 'PENDING',
                                 notes           TEXT,
                                 reviewed_at     TIMESTAMP,
                                 created_at      TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -60,7 +54,7 @@ CREATE TABLE credit_limit_requests (
                                        approved_limit       NUMERIC(19,4) NOT NULL,
                                        reason              TEXT,
                                        file_url              TEXT,
-                                       status              approval_status NOT NULL DEFAULT 'PENDING',
+                                       status              VARCHAR(100) NOT NULL DEFAULT 'PENDING',
                                        reviewed_by         BIGINT REFERENCES user_accounts(id),
                                        review_notes        TEXT,
                                        reviewed_at         TIMESTAMP,
@@ -73,7 +67,6 @@ CREATE TABLE credit_limit_requests (
 -- =========================================================
 -- CREDIT LIMIT WORKFLOW
 -- =========================================================
-CREATE TYPE credit_limit_status AS ENUM ('ACTIVE', 'INACTIVE', 'PROBATION', 'BLACKLISTED');
 
 CREATE TABLE credit_limit(
                                        id                  BIGSERIAL PRIMARY KEY,
@@ -83,7 +76,7 @@ CREATE TABLE credit_limit(
                                        credit_limit       NUMERIC(19,4) NOT NULL,
                                        frozen_limit       NUMERIC(19,4) NOT NULL,
                                        available_limit       NUMERIC(19,4) NOT NULL,
-                                       status              credit_limit_status NOT NULL DEFAULT 'ACTIVE',
+                                       status              VARCHAR(100) NOT NULL DEFAULT 'ACTIVE',
                                        created_at          TIMESTAMP NOT NULL DEFAULT NOW(),
                                        updated_at          TIMESTAMP NOT NULL DEFAULT NOW(),
                                        created_by          VARCHAR(100),
