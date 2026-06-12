@@ -101,6 +101,7 @@ public class CreditServiceImpl extends BaseServiceImpl<CreditLimitRequest> imple
 
         LoanProduct loanProduct = loanProductRepository.findById(request.getProductId()).orElseThrow(() -> new ResourceNotFoundException("Loan Product", request.getProductId()));
         limitRequest.setStatus(request.getStatus());
+        limitRequest.setApprovedLimit(request.getMaxLoanLimit());
         limitRequest.setReason(request.getReason());
         limitRequest.setReviewNotes(request.getReason());
         limitRequest.setReviewedAt(LocalDateTime.now());
