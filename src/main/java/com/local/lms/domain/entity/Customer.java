@@ -43,7 +43,6 @@ public class Customer extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "preferred_channel", nullable = false, columnDefinition = "notification_channel")
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
     private NotificationChannel preferredChannel = NotificationChannel.EMAIL;
 
     @Column(nullable = false)

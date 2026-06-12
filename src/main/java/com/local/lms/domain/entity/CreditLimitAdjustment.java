@@ -27,6 +27,5 @@ public class CreditLimitAdjustment extends BaseEntity {
     private String reason;
 
     @Enumerated(EnumType.STRING)
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
     private AdjustmentType type;
 }

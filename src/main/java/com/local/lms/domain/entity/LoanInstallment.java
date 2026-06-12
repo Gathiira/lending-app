@@ -37,7 +37,6 @@ public class LoanInstallment extends BaseEntity{
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, columnDefinition = "loan_status")
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
     private LoanStatus status = LoanStatus.OPEN;
 
 }

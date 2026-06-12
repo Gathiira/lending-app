@@ -17,12 +17,10 @@ public class NotificationTemplate extends BaseEntity{
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "notification_event_type")
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
     private NotificationEventType event;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "notification_channel")
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
     private NotificationChannel channel;
 
     @Column(columnDefinition = "TEXT")

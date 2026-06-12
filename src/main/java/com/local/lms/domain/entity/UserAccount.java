@@ -30,12 +30,10 @@ public class UserAccount extends BaseEntity implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "user_role")
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
     private UserRole role;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "account_status")
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
     private AccountStatus status = AccountStatus.ACTIVE;
 
     /** Null for STAFF and ADMIN accounts */
