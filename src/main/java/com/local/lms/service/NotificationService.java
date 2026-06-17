@@ -14,4 +14,5 @@ public interface NotificationService {
     NotificationTemplateResponse createTemplate(NotificationTemplateRequest request);
     NotificationTemplateResponse updateTemplate(Long id, NotificationTemplateRequest request);
     void sendDueDateReminders(int daysAhead);
+    int sendDueDateReminderBatch(int daysAhead, int batchSize);
 }

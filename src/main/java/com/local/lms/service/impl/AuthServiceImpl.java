@@ -38,9 +38,6 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException("Account is not active");
         }
 
-        // TODO disable this for production
-//        user.setPassword(passwordEncoder.encode(request.getPassword()));
-
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new BusinessException("Invalid username or password");
         }

@@ -1,5 +1,5 @@
 package com.local.lms.domain.enums;
 
 public enum NotificationStatus {
-    PENDING, SENT, FAILED
+    PENDING, PROCESSING, SENT, FAILED
 }

@@ -6,12 +6,14 @@ import com.local.lms.dto.request.NotificationTemplateRequest;
 import com.local.lms.dto.response.NotificationTemplateResponse;
 import com.local.lms.repository.LoanRepository;
 import com.local.lms.repository.NotificationRepository;
+import com.local.lms.repository.NotificationTrackerRepository;
 import com.local.lms.repository.NotificationTemplateRepository;
 import com.local.lms.service.impl.NotificationServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -29,13 +31,15 @@ class NotificationServiceImplTest {
 
     @Mock private NotificationTemplateRepository templateRepository;
     @Mock private NotificationRepository notificationRepository;
+    @Mock private NotificationTrackerRepository trackerRepository;
     @Mock private LoanRepository loanRepository;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     // -----------------------------
-    // SEND NOTIFICATION - MOCK MODE
+    // SEND NOTIFICATION
     // -----------------------------
     @Test
-    void sendNotification_mockEnabled_shouldSaveNotification() {
+    void sendNotification_shouldSaveNotification() {
 
         Customer customer = Customer.builder()
                 .id(1L)
@@ -60,21 +64,18 @@ class NotificationServiceImplTest {
                 .active(true)
                 .build();
 
+        when(trackerRepository.existsByLoanIdAndEventAndNotificationDate(any(), any(), any()))
+                .thenReturn(false);
+        when(trackerRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(templateRepository.findByEventAndChannelAndActiveTrue(any(), any()))
                 .thenReturn(Optional.of(template));
+        when(notificationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        when(notificationRepository.save(any()))
-                .thenAnswer(i -> i.getArgument(0));
-
-        NotificationTemplateResponse response = null;
-
-        notificationService.sendNotification(
-                customer,
-                loan,
-                NotificationEventType.LOAN_CREATED
-        );
+        notificationService.sendNotification(customer, loan, NotificationEventType.LOAN_CREATED);
 
         verify(notificationRepository, times(1)).save(any(Notification.class));
+        verify(trackerRepository, times(3)).save(any(NotificationTracker.class));
+        verify(eventPublisher).publishEvent(any());
     }
 
     // -----------------------------
@@ -92,6 +93,8 @@ class NotificationServiceImplTest {
                 .id(1L)
                 .build();
 
+        when(trackerRepository.existsByLoanIdAndEventAndNotificationDate(any(), any(), any()))
+                .thenReturn(false);
         when(templateRepository.findByEventAndChannelAndActiveTrue(any(), any()))
                 .thenReturn(Optional.empty());
 
@@ -101,12 +104,34 @@ class NotificationServiceImplTest {
     }
 
     // -----------------------------
+    // IDEMPOTENCY — SKIP IF ALREADY TRACKED
+    // -----------------------------
+    @Test
+    void sendNotification_shouldSkip_whenAlreadyTracked() {
+
+        Customer customer = Customer.builder()
+                .id(1L)
+                .preferredChannel(NotificationChannel.EMAIL)
+                .build();
+
+        Loan loan = Loan.builder()
+                .id(1L)
+                .build();
+
+        when(trackerRepository.existsByLoanIdAndEventAndNotificationDate(any(), any(), any()))
+                .thenReturn(true);
+
+        notificationService.sendNotification(customer, loan, NotificationEventType.LOAN_CREATED);
+
+        verify(notificationRepository, never()).save(any());
+        verify(templateRepository, never()).findByEventAndChannelAndActiveTrue(any(), any());
+    }
+
+    // -----------------------------
     // EMAIL SEND PATH
     // -----------------------------
     @Test
     void sendNotification_shouldSendEmail_whenEmailEnabled() {
-
-        NotificationServiceImpl service = Mockito.spy(notificationService);
 
         Customer customer = Customer.builder()
                 .id(1L)
@@ -128,13 +153,14 @@ class NotificationServiceImplTest {
                 .active(true)
                 .build();
 
+        when(trackerRepository.existsByLoanIdAndEventAndNotificationDate(any(), any(), any()))
+                .thenReturn(false);
+        when(trackerRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(templateRepository.findByEventAndChannelAndActiveTrue(any(), any()))
                 .thenReturn(Optional.of(template));
+        when(notificationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        when(notificationRepository.save(any()))
-                .thenAnswer(i -> i.getArgument(0));
-
-        service.sendNotification(customer, loan, NotificationEventType.LOAN_CREATED);
+        notificationService.sendNotification(customer, loan, NotificationEventType.LOAN_CREATED);
 
         verify(notificationRepository).save(any(Notification.class));
     }
@@ -143,7 +169,7 @@ class NotificationServiceImplTest {
     // DUE DATE REMINDERS
     // -----------------------------
     @Test
-    void sendDueDateReminders_shouldCallSendNotification() {
+    void sendDueDateReminders_shouldClaimAndNotify() {
 
         Customer customer = Customer.builder()
                 .id(1L)
@@ -155,15 +181,18 @@ class NotificationServiceImplTest {
                 .customer(customer)
                 .build();
 
-        when(loanRepository.findLoansDueBetween(any(), any()))
-                .thenReturn(List.of(loan));
-
+        when(loanRepository.claimLoansDueBetween(any(), any(), anyInt()))
+                .thenReturn(List.of(1L))
+                .thenReturn(List.of());
+        when(loanRepository.findById(1L)).thenReturn(Optional.of(loan));
+        when(trackerRepository.existsByLoanIdAndEventAndNotificationDate(any(), any(), any()))
+                .thenReturn(false);
         when(templateRepository.findByEventAndChannelAndActiveTrue(any(), any()))
                 .thenReturn(Optional.empty());
 
         notificationService.sendDueDateReminders(5);
 
-        verify(loanRepository).findLoansDueBetween(any(), any());
+        verify(loanRepository, times(2)).claimLoansDueBetween(any(), any(), anyInt());
     }
 
     // -----------------------------

@@ -25,7 +25,9 @@ public interface LoanService {
     LoanResponse cancelLoan(Long id);
     LoanResponse writeOffLoan(Long id);
 
-    // Called by scheduler
+    // Called by scheduler — batch variants use FOR UPDATE SKIP LOCKED
     void processOverdueLoans();
+    int processOverdueBatch(int batchSize);
     void applyDailyFees();
+    int applyDailyFeesBatch(int batchSize);
 }

@@ -1,6 +1,6 @@
 package com.local.lms.service.impl;
 
-import com.local.lms.core.EntityLockManager;
+import com.local.lms.core.LockManager;
 import com.local.lms.domain.entity.*;
 import com.local.lms.domain.enums.*;
 import com.local.lms.dto.request.*;
@@ -14,7 +14,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -43,13 +45,12 @@ public class LoanServiceImpl extends BaseServiceImpl<Loan> implements LoanServic
     private final LoanProductRepository productRepository;
     private final NotificationService notificationService;
     private final CreditLimitRepository creditLimitRepository;
-    private final EntityLockManager lockManager;
+    private final LockManager lockManager;
 
     // =========================================================================
     // Loan creation
     // =========================================================================
 
-    @Transactional
     protected LoanResponse persistLoan(BigDecimal amount, LoanProduct product, Customer customer, String notes) {
         if (!product.getActive()) throw new BusinessException("Loan product is not active");
         if (!customer.getActive()) throw new BusinessException("Customer account is not active");
@@ -299,84 +300,113 @@ public class LoanServiceImpl extends BaseServiceImpl<Loan> implements LoanServic
     }
 
     // =========================================================================
-    // Scheduled jobs
+    // Scheduled jobs — every instance competes via FOR UPDATE SKIP LOCKED
     // =========================================================================
 
     @Override
-    @Transactional
+    @Async
     public void processOverdueLoans() {
-        LocalDate today = LocalDate.now();
-        List<Loan> openOverdue = loanRepository.findOpenLoansOverdue(today);
-        log.info("Sweep: found {} open loans past due", openOverdue.size());
-
-        for (Loan loan : openOverdue) {
-            loan.setStatus(LoanStatus.OVERDUE);
-
-            long daysOverdue = today.toEpochDay() - loan.getDueDate().toEpochDay();
-
-            // --- pure predicate: isLateFeeApplicable ---
-            loan.getProduct().getFees().stream()
-                    .filter(f -> LoanCalculator.isLateFeeApplicable(f, daysOverdue))
-                    .filter(f -> !loanFeeRepository.existsByLoanIdAndFeeTypeAndPaidFalse(
-                            loan.getId(), FeeType.LATE_FEE))
-                    .forEach(f -> {
-                        // --- pure calculation ---
-                        BigDecimal feeAmount = LoanCalculator.calculateFeeAmount(
-                                f, loan.getOutstandingBalance());
-
-                        // --- persistence ---
-                        LoanFee loanFee = LoanFee.builder()
-                                .loan(loan)
-                                .productFee(f)
-                                .feeType(FeeType.LATE_FEE)
-                                .amount(feeAmount)
-                                .appliedDate(today)
-                                .paid(false)
-                                .description("Late fee applied")
-                                .build();
-                        loanFeeRepository.save(loanFee);
-                        notificationService.sendNotification(
-                                loan.getCustomer(), loan, NotificationEventType.LATE_FEE_APPLIED);
-                        log.info("Applied late fee {} to loan {}", feeAmount, loan.getLoanReference());
-                    });
-
-            loanRepository.save(loan);
-            notificationService.sendNotification(
-                    loan.getCustomer(), loan, NotificationEventType.LOAN_OVERDUE);
+        int total = 0;
+        int count;
+        while ((count = processOverdueBatch(200)) > 0) {
+            total += count;
         }
+        log.info("Overdue sweep complete — processed {} loans", total);
     }
 
     @Override
     @Transactional
-    public void applyDailyFees() {
+    public int processOverdueBatch(int batchSize) {
         LocalDate today = LocalDate.now();
-        loanRepository.findAll().stream()
-                .filter(l -> l.getStatus() == LoanStatus.OPEN
-                        || l.getStatus() == LoanStatus.OVERDUE)
-                .forEach(loan -> {
-                    loan.getProduct().getFees().stream()
-                            .filter(f -> f.getFeeType() == FeeType.DAILY_FEE
-                                    && Boolean.TRUE.equals(f.getActive()))
-                            .forEach(f -> {
-                                // --- pure calculation ---
-                                BigDecimal dailyFeeAmount = LoanCalculator.calculateFeeAmount(
-                                        f, loan.getOutstandingBalance());
+        List<Long> ids = loanRepository.claimOverdueLoans(today, batchSize);
+        if (ids.isEmpty()) return 0;
 
-                                // --- persistence ---
-                                LoanFee loanFee = LoanFee.builder()
-                                        .loan(loan)
-                                        .productFee(f)
-                                        .feeType(FeeType.DAILY_FEE)
-                                        .amount(dailyFeeAmount)
-                                        .appliedDate(today)
-                                        .paid(false)
-                                        .description("Daily fee for " + today)
-                                        .build();
-                                loanFeeRepository.save(loanFee);
-                                loan.setOutstandingBalance(
-                                        loan.getOutstandingBalance().add(dailyFeeAmount));
-                                loanRepository.save(loan);
-                            });
+        log.info("Claimed {} loans for overdue processing", ids.size());
+        for (Long id : ids) {
+            processSingleOverdueLoan(findById(id), today);
+        }
+        return ids.size();
+    }
+
+    private void processSingleOverdueLoan(Loan loan, LocalDate today) {
+        loan.setStatus(LoanStatus.OVERDUE);
+
+        long daysOverdue = today.toEpochDay() - loan.getDueDate().toEpochDay();
+
+        loan.getProduct().getFees().stream()
+                .filter(f -> LoanCalculator.isLateFeeApplicable(f, daysOverdue))
+                .filter(f -> !loanFeeRepository.existsByLoanIdAndFeeTypeAndPaidFalse(
+                        loan.getId(), FeeType.LATE_FEE))
+                .forEach(f -> {
+                    BigDecimal feeAmount = LoanCalculator.calculateFeeAmount(
+                            f, loan.getOutstandingBalance());
+
+                    LoanFee loanFee = LoanFee.builder()
+                            .loan(loan)
+                            .productFee(f)
+                            .feeType(FeeType.LATE_FEE)
+                            .amount(feeAmount)
+                            .appliedDate(today)
+                            .paid(false)
+                            .description("Late fee applied")
+                            .build();
+                    loanFeeRepository.save(loanFee);
+                    notificationService.sendNotification(
+                            loan.getCustomer(), loan, NotificationEventType.LATE_FEE_APPLIED);
+                    log.info("Applied late fee {} to loan {}", feeAmount, loan.getLoanReference());
+                });
+
+        loanRepository.save(loan);
+        notificationService.sendNotification(
+                loan.getCustomer(), loan, NotificationEventType.LOAN_OVERDUE);
+    }
+
+    @Override
+    @Async
+    public void applyDailyFees() {
+        int total = 0;
+        int count;
+        while ((count = applyDailyFeesBatch(200)) > 0) {
+            total += count;
+        }
+        log.info("Daily fees complete — processed {} loans", total);
+    }
+
+    @Override
+    @Transactional
+    public int applyDailyFeesBatch(int batchSize) {
+        LocalDate today = LocalDate.now();
+        List<Long> ids = loanRepository.claimActiveLoans(batchSize);
+        if (ids.isEmpty()) return 0;
+
+        log.info("Claimed {} loans for daily fee application", ids.size());
+        for (Long id : ids) {
+            applyDailyFeesForLoan(findById(id), today);
+        }
+        return ids.size();
+    }
+
+    private void applyDailyFeesForLoan(Loan loan, LocalDate today) {
+        loan.getProduct().getFees().stream()
+                .filter(f -> f.getFeeType() == FeeType.DAILY_FEE
+                        && Boolean.TRUE.equals(f.getActive()))
+                .forEach(f -> {
+                    BigDecimal dailyFeeAmount = LoanCalculator.calculateFeeAmount(
+                            f, loan.getOutstandingBalance());
+
+                    LoanFee loanFee = LoanFee.builder()
+                            .loan(loan)
+                            .productFee(f)
+                            .feeType(FeeType.DAILY_FEE)
+                            .amount(dailyFeeAmount)
+                            .appliedDate(today)
+                            .paid(false)
+                            .description("Daily fee for " + today)
+                            .build();
+                    loanFeeRepository.save(loanFee);
+                    loan.setOutstandingBalance(
+                            loan.getOutstandingBalance().add(dailyFeeAmount));
+                    loanRepository.save(loan);
                 });
     }
 

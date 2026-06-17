@@ -12,21 +12,25 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class LoanSweepScheduler {
 
+    private static final int BATCH_SIZE = 200;
+
     private final LoanService loanService;
     private final NotificationService notificationService;
 
     /**
      * Daily sweep: marks open loans as OVERDUE and applies late fees.
+     * Every instance competes for unclaimed loans via FOR UPDATE SKIP LOCKED.
      */
     @Scheduled(cron = "${scheduler.sweep.cron:0 0 1 * * *}")
     public void sweepOverdueLoans() {
-        log.info("=== Starting overdue loan sweep ===");
-        try {
-            loanService.processOverdueLoans();
-        } catch (Exception e) {
-            log.error("Error during overdue loan sweep", e);
+        log.info("=== Starting overdue loan sweep (batch size={}) ===", BATCH_SIZE);
+        int total = 0;
+        int count;
+        while ((count = loanService.processOverdueBatch(BATCH_SIZE)) > 0) {
+            total += count;
+            log.info("Overdue sweep: processed {} loans this batch", count);
         }
-        log.info("=== Overdue loan sweep complete ===");
+        log.info("=== Overdue loan sweep complete — processed {} loans ===", total);
     }
 
     /**
@@ -34,12 +38,14 @@ public class LoanSweepScheduler {
      */
     @Scheduled(cron = "${scheduler.sweep.cron:0 0 1 * * *}")
     public void applyDailyFees() {
-        log.info("=== Applying daily fees ===");
-        try {
-            loanService.applyDailyFees();
-        } catch (Exception e) {
-            log.error("Error applying daily fees", e);
+        log.info("=== Applying daily fees (batch size={}) ===", BATCH_SIZE);
+        int total = 0;
+        int count;
+        while ((count = loanService.applyDailyFeesBatch(BATCH_SIZE)) > 0) {
+            total += count;
+            log.info("Daily fees: processed {} loans this batch", count);
         }
+        log.info("=== Daily fees complete — processed {} loans ===", total);
     }
 
     /**
@@ -47,11 +53,13 @@ public class LoanSweepScheduler {
      */
     @Scheduled(cron = "${scheduler.reminder.cron:0 0 8 * * *}")
     public void sendDueDateReminders() {
-        log.info("=== Sending due date reminders ===");
-        try {
-            notificationService.sendDueDateReminders(3);
-        } catch (Exception e) {
-            log.error("Error sending due date reminders", e);
+        log.info("=== Sending due date reminders (batch size={}) ===", BATCH_SIZE);
+        int total = 0;
+        int count;
+        while ((count = notificationService.sendDueDateReminderBatch(3, BATCH_SIZE)) > 0) {
+            total += count;
+            log.info("Due date reminders: processed {} loans this batch", count);
         }
+        log.info("=== Due date reminders complete — processed {} loans ===", total);
     }
 }

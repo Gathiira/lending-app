@@ -6,13 +6,16 @@ import com.local.lms.domain.enums.NotificationEventType;
 import com.local.lms.domain.enums.NotificationStatus;
 import com.local.lms.dto.request.NotificationTemplateRequest;
 import com.local.lms.dto.response.NotificationTemplateResponse;
+import com.local.lms.event.NotificationEvent;
 import com.local.lms.exceptions.ResourceNotFoundException;
 import com.local.lms.repository.LoanRepository;
 import com.local.lms.repository.NotificationRepository;
+import com.local.lms.repository.NotificationTrackerRepository;
 import com.local.lms.repository.NotificationTemplateRepository;
 import com.local.lms.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,11 +32,22 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationTemplateRepository templateRepository;
     private final NotificationRepository notificationRepository;
+    private final NotificationTrackerRepository trackerRepository;
     private final LoanRepository loanRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
     public void sendNotification(Customer customer, Loan loan, NotificationEventType event) {
+        LocalDate today = LocalDate.now();
+
+        // Check idempotency — skip if already tracked for this loan + event + date
+        if (trackerRepository.existsByLoanIdAndEventAndNotificationDate(loan.getId(), event, today)) {
+            log.debug("Notification already tracked for loan={} event={} date={}, skipping",
+                    loan.getId(), event, today);
+            return;
+        }
+
         NotificationChannel channel = customer.getPreferredChannel();
 
         templateRepository.findByEventAndChannelAndActiveTrue(event, channel).ifPresentOrElse(
@@ -44,28 +58,42 @@ public class NotificationServiceImpl implements NotificationService {
                     String recipient = channel == NotificationChannel.SMS
                             ? customer.getPhoneNumber() : customer.getEmail();
 
-                    Notification notifLog = Notification.builder()
-                            .customer(customer)
+                    // Create tracker: PENDING → PROCESSING → SENT/FAILED
+                    NotificationTracker tracker = NotificationTracker.builder()
                             .loan(loan)
                             .event(event)
-                            .channel(channel)
-                            .recipient(recipient)
-                            .subject(subject)
-                            .message(message)
+                            .notificationDate(today)
                             .status(NotificationStatus.PENDING)
                             .build();
 
                     try {
-                        // switch different channels and using the respective impl
-                        log.info("[NOTIFICATION] Channel {} not configured. Would send to {} the message: {}", channel, recipient, message);
-                        notifLog.setStatus(NotificationStatus.SENT);
-                        notifLog.setSentAt(LocalDateTime.now());
+                        tracker = trackerRepository.save(tracker);
+                        tracker.setStatus(NotificationStatus.PROCESSING);
+                        trackerRepository.save(tracker);
+
+                        Notification notification = Notification.builder()
+                                .customer(customer)
+                                .loan(loan)
+                                .event(event)
+                                .channel(channel)
+                                .recipient(recipient)
+                                .subject(subject)
+                                .message(message)
+                                .status(NotificationStatus.PENDING)
+                                .build();
+
+                        notificationRepository.save(notification);
+                        eventPublisher.publishEvent(new NotificationEvent(this, notification, customer, loan));
+
+                        tracker.setStatus(NotificationStatus.SENT);
+                        tracker.setSentAt(LocalDateTime.now());
+                        trackerRepository.save(tracker);
                     } catch (Exception e) {
                         log.error("Failed to send notification event={} to={}", event, recipient, e);
-                        notifLog.setStatus(NotificationStatus.FAILED);
-                        notifLog.setErrorMessage(e.getMessage());
+                        tracker.setStatus(NotificationStatus.FAILED);
+                        tracker.setErrorMessage(e.getMessage());
+                        trackerRepository.save(tracker);
                     }
-                    notificationRepository.save(notifLog);
                 },
                 () -> log.warn("No template found for event={} channel={}", event, channel)
         );
@@ -74,11 +102,29 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void sendDueDateReminders(int daysAhead) {
+        int total = 0;
+        int count;
+        while ((count = sendDueDateReminderBatch(daysAhead, 100)) > 0) {
+            total += count;
+        }
+        log.info("Due date reminders complete — processed {} loans", total);
+    }
+
+    @Override
+    @Transactional
+    public int sendDueDateReminderBatch(int daysAhead, int batchSize) {
         LocalDate from = LocalDate.now();
         LocalDate to = from.plusDays(daysAhead);
-        List<Loan> dueLoans = loanRepository.findLoansDueBetween(from, to);
-        log.info("Sending due date reminders for {} loans due in next {} days", dueLoans.size(), daysAhead);
-        dueLoans.forEach(loan -> sendNotification(loan.getCustomer(), loan, NotificationEventType.DUE_DATE_REMINDER));
+        List<Long> ids = loanRepository.claimLoansDueBetween(from, to, batchSize);
+        if (ids.isEmpty()) return 0;
+
+        log.info("Claimed {} loans for due date reminders", ids.size());
+        for (Long id : ids) {
+            loanRepository.findById(id).ifPresent(loan ->
+                    sendNotification(loan.getCustomer(), loan, NotificationEventType.DUE_DATE_REMINDER)
+            );
+        }
+        return ids.size();
     }
 
     @Override
