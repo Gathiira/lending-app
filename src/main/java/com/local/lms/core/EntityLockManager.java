@@ -10,9 +10,8 @@ import java.util.function.Supplier;
 
 @Component
 @Slf4j
-public class EntityLockManager {
+public class EntityLockManager implements LockManager {
 
-    // in case of multiple instance - replace this with distributed lock
     private final ConcurrentHashMap<String, ReentrantLock> lockMap = new ConcurrentHashMap<>();
 
     /**

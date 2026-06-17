@@ -113,6 +113,12 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
+        <!-- Redis (optional - for distributed locking) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
         <!-- JWT (JJWT) -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
